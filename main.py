@@ -348,7 +348,7 @@ def main():
                     # Пытаемся извлечь количество минут из команды
                     minutes = parse_time(command)
                     if minutes:
-                        start_timer_thread(minutes)  # Запускаем таймер на нужное количество секунд
+                        start_timer_thread(minutes)
                         set_volume(20)
                         speak(f"Таймер поставлен")
                     else:
