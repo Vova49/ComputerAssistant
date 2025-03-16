@@ -98,27 +98,11 @@ def create_circular_timer(seconds):
     stop_event.set()
 
 
-def play_sound():
-    """Воспроизводит звуковой файл с использованием pygame."""
-    try:
-        pygame.mixer.init()
-        pygame.mixer.music.load(r"C:/Users/vovaf/PycharmProjects/ComputerAssistant/signal.mp3")  # Путь к файлу
-        pygame.mixer.music.play()
-    except Exception as e:
-        print(f"Ошибка при воспроизведении звука: {e}")
-
-
 def start_timer_thread(seconds):
     """Запуск таймера в отдельном потоке."""
     timer_thread = threading.Thread(target=create_circular_timer, args=(seconds,))
     timer_threads.append(timer_thread)
     timer_thread.start()
-
-
-def speak(text):
-    """Произносит текст вслух."""
-    engine.say(text)
-    engine.runAndWait()
 
 
 def close_all_timers():
@@ -129,6 +113,22 @@ def close_all_timers():
         stop_event.set()  # Останавливаем таймер
         window.quit()  # Закрываем окно
     timer_windows.clear()
+
+
+def play_sound():
+    """Воспроизводит звуковой файл с использованием pygame."""
+    try:
+        pygame.mixer.init()
+        pygame.mixer.music.load(r"C:/Users/vovaf/PycharmProjects/ComputerAssistant/signal.mp3")  # Путь к файлу
+        pygame.mixer.music.play()
+    except Exception as e:
+        print(f"Ошибка при воспроизведении звука: {e}")
+
+
+def speak(text):
+    """Произносит текст вслух."""
+    engine.say(text)
+    engine.runAndWait()
 
 
 def parse_time(command):
