@@ -25,6 +25,13 @@ engine = pyttsx3.init()
 timer_threads = []
 timer_windows = []  # Список для хранения окон таймеров
 
+number_words = {
+    "первый": 1, "второй": 2, "третий": 3, "четвертый": 4, "пятый": 5,
+    "шестой": 6, "седьмой": 7, "восьмой": 8, "девятый": 9, "десятый": 10,
+    "один": 1, "два": 2, "три": 3, "четыре": 4, "пять": 5,
+    "шесть": 6, "семь": 7, "восемь": 8, "девять": 9, "десять": 10
+}
+
 # Регистрация браузера Chrome
 webbrowser.register("chrome", None,
                     webbrowser.BackgroundBrowser(r"C:\Program Files\Google\Chrome\Application\chrome.exe"))
@@ -91,7 +98,7 @@ def create_circular_timer(seconds):
     stop_event = threading.Event()
     force_stop = False
 
-    timer_windows.append((root, stop_event, lambda: set_force_stop()))
+    timer_windows.append((timer_number, root, stop_event, lambda: set_force_stop()))
 
     def set_force_stop():
         nonlocal force_stop
@@ -107,6 +114,21 @@ def start_timer_thread(seconds):
     timer_thread = threading.Thread(target=create_circular_timer, args=(seconds,))
     timer_threads.append(timer_thread)
     timer_thread.start()
+
+
+def close_timer_by_number(n):
+    """Закрывает таймер с указанным номером."""
+    global timer_windows
+    for timer in timer_windows:
+        if timer[0] == n:
+            _, window, stop_event, set_force_stop = timer
+            set_force_stop()
+            stop_event.set()
+            window.quit()
+            timer_windows.remove(timer)
+            print(f"Таймер {n} закрыт")
+            return
+    print(f"Таймер {n} не найден")
 
 
 def close_all_timers():
@@ -284,6 +306,42 @@ def check_internet():
         return False
 
 
+def process_timer_command(command):
+    """Обрабатывает команды, связанные с таймерами."""
+    if any(word in command for word in ["включи таймер", "поставь таймер", "засеки", "запусти таймер"]):
+        minutes = parse_time(command)
+        if minutes:
+            start_timer_thread(minutes)
+            speak(f"Таймер поставлен.")
+        else:
+            speak("Не удалось определить время таймера")
+
+    elif "закрой все таймеры" in command or "выключи все таймеры" in command:
+        close_all_timers()
+        speak("Все таймеры выключены.")
+
+    else:
+        match = re.search(r"(закрой|выключи) (\d+|[а-я]+)[^\d]*таймер", command)
+        if match:
+            number_str = match.group(2)
+            timer_number = int(number_str) if number_str.isdigit() else number_words.get(number_str, None)
+            if timer_number:
+                close_timer_by_number(timer_number)
+            else:
+                speak("Не удалось определить номер таймера.")
+
+
+def process_video_command(command):
+    """Обрабатывает команды по включению видео."""
+    movie_name = command.replace("включи", "").strip()
+    if "фиксиков" in movie_name or "фиксики" in movie_name:
+        open_video("https://www.youtube.com/watch?v=FG26F4FwGuE&ab_channel=%D0%A4%D0%B8%D0%BA%D0%B8%D0%B8")
+    elif "смешариков" in movie_name or "смешарики" in movie_name:
+        open_video("https://www.youtube.com/watch?v=FfDRfz9Bl0k&ab_channel=TVSmeshariki")
+    else:
+        search_movie_on_kinogo(movie_name)
+
+
 def main():
     recognizer = sr.Recognizer()
 
@@ -291,82 +349,62 @@ def main():
         print("Ассистент активен")
         while True:
             try:
-                # Проверяем интернет перед распознаванием
+                # Проверяем подключение к интернету перед началом работы
                 while not check_internet():
                     print("Интернет отсутствует, жду подключения...")
-                    time.sleep(5)  # Ждём 5 секунд перед новой проверкой
+                    time.sleep(5)
 
                 print("Говорите...")
                 audio = recognizer.listen(source)
                 command = recognizer.recognize_google(audio, language="ru-RU").lower()
                 print(f"Вы сказали: {command}")
 
-                # Реакция на команды
+                # Обработка команд
                 if "привет" in command:
                     speak("Привет!")
-                elif "скажи время" in command or " какое время" in command:
-                    current_time = datetime.now().strftime("%H:%M")
-                    speak(f"Сейчас {current_time}")
-                if "Спасибо" in command or "Благодарю" in command:
+                elif any(word in command for word in ["скажи время", "какое время", "который час"]):
+                    speak(f"Сейчас {datetime.now().strftime('%H:%M')}")
+                elif "спасибо" in command or "благодарю" in command:
                     speak("Пожалуйста")
                 elif "выключи компьютер" in command:
                     os.system("shutdown /s /t 0")
-                elif "выключи таймер" in command or "выключи таймеры" in command or "закрой таймер" in command:
-                    close_all_timers()
+
+                # Управление таймерами
+                elif "таймер" in command:
+                    process_timer_command(command)
+
+                # Управление музыкой
                 elif "выключи музыку" in command:
                     stop_music()
-                elif "включи музыку" in command or "включи музыка" in command:
+                elif "включи музыку" in command:
                     set_volume(20)
-                    music_folder = r"D:\музыка\Настроение"  # Укажите путь к вашей папке с музыкой
-                    play_music(music_folder)
-                elif "включи радио" in command or "выключи радио" in command or "закрой радио" in command:
+                    play_music(r"D:\\музыка\\Настроение")  # Укажите путь к вашей папке с музыкой
+
+                # Управление радио
+                elif "включи радио" in command or "выключи радио" in command:
                     set_volume(20)
                     turn_on_radio()
-                elif "погода" in command or "Какая погода" in command or "Сейчас тепло" in command or "Сегодня будет тепло" in command or "Сколько градусов" in command:
+
+                # Погода
+                elif any(word in command for word in ["погода", "какая погода", "сейчас тепло", "сколько градусов"]):
                     set_volume(20)
                     speak(get_current_weather())
-                elif "включи" in command:
-                    if "таймер" in command:  # Если в команде упоминается "таймер", обрабатываем это отдельно
-                        minutes = parse_time(command)
-                        if minutes:
-                            start_timer_thread(minutes)  # Запускаем таймер на нужное количество секунд
-                            set_volume(20)
-                            speak(f"Таймер поставлен")
-                        else:
-                            speak("Повторите пожалуйста")
-                    else:
-                        # Убираем "включи" из команды и очищаем от лишних пробелов для запуска видео
-                        movie_name = command.replace("включи", "").strip()
-                        # Проверяем специальные случаи
-                        if "фиксиков" in movie_name or "фиксики" in movie_name:
-                            video_url = "https://www.youtube.com/watch?v=FG26F4FwGuE&ab_channel=%D0%A4%D0%B8%D0%BA%D0%B8%D0%B8"
-                            open_video(video_url)
-                        elif "смешариков" in movie_name or "смешарики" in movie_name:
-                            video_url = "https://www.youtube.com/watch?v=FfDRfz9Bl0k&ab_channel=TVSmeshariki"
-                            open_video(video_url)
-                        else:
-                            # Если команда не содержит фиксиков или смешариков, ищем на kinogo.ec
-                            search_movie_on_kinogo(movie_name)
 
-                elif "включи таймер" in command or "поставь таймер" in command or "засеки" in command or "запусти таймер" in command or "таймер" in command:
-                    # Пытаемся извлечь количество минут из команды
-                    minutes = parse_time(command)
-                    if minutes:
-                        start_timer_thread(minutes)
-                        set_volume(20)
-                        speak(f"Таймер поставлен")
-                    else:
-                        speak("Повторите пожалуйста")
+                # Воспроизведение видео
+                elif "включи" in command:
+                    process_video_command(command)
+
                 else:
                     print("Я вас не понял. Попробуйте снова.")
+
             except sr.UnknownValueError:
                 print("Не могу распознать, попробуйте снова.")
             except sr.WaitTimeoutError:
                 print("Микрофон не обнаружил звук, жду дальше.")
-            except RequestError as e:
-                print("Убедитесь, что подключение к интернету активно, и попробуйте снова.")
+            except RequestError:
+                print("Ошибка сети. Проверьте интернет и попробуйте снова.")
             except Exception as e:
-                print(f"Произошла непредвиденная ошибка: {e}")
+                print(f"Произошла ошибка: {e}")
 
 
 if __name__ == "__main__":
