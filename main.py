@@ -70,10 +70,14 @@ def create_circular_timer(seconds):
         root.geometry(f"+{x}+{y}")
 
     root = tk.Tk()
-    root.geometry("300x300")
+    root.geometry("300x315")  # Увеличил высоту для заголовка
     root.resizable(False, False)
     root.attributes("-topmost", True)
     root.overrideredirect(True)  # Убираем заголовок окна
+
+    timer_number = len(timer_windows) + 1
+    label = tk.Label(root, text=f"Таймер {timer_number}", font=("Arial", 12, "bold"), bg="white")
+    label.pack()
 
     canvas = tk.Canvas(root, width=300, height=300, bg="white")
     canvas.pack()
