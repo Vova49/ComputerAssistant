@@ -1,4 +1,5 @@
 import os
+import queue
 import re
 import subprocess
 import threading
@@ -24,6 +25,8 @@ kmplayer_process = None
 engine = pyttsx3.init()
 timer_threads = []
 timer_windows = []  # Список для хранения окон таймеров
+next_timer_number = 1  # Глобальная переменная для нумерации таймеров
+timer_queue = queue.Queue()  # Очередь для безопасного обновления UI
 
 number_words = {
     "первый": 1, "второй": 2, "третий": 3, "четвертый": 4, "пятый": 5,
@@ -37,7 +40,36 @@ webbrowser.register("chrome", None,
                     webbrowser.BackgroundBrowser(r"C:\Program Files\Google\Chrome\Application\chrome.exe"))
 
 
+def update_timer_numbers():
+    global next_timer_number
+    print(f"Начало обновления номеров таймеров. Текущие таймеры: {timer_windows}")
+
+    # Сортируем таймеры по текущим номерам
+    timer_windows.sort(key=lambda x: x[0])
+
+    # Создаем новый список с обновленными номерами
+    new_timer_windows = []
+    for i, timer in enumerate(timer_windows, 1):
+        old_number, window, stop_event, set_force_stop = timer
+        if old_number != i:
+            print(f"Обновление номера таймера с {old_number} на {i}")
+            # Обновляем текст метки в окне через очередь
+            timer_queue.put((window, i))
+        new_timer_windows.append((i, window, stop_event, set_force_stop))
+
+    # Обновляем глобальный список таймеров
+    timer_windows.clear()
+    timer_windows.extend(new_timer_windows)
+
+    # Обновляем следующий доступный номер
+    next_timer_number = len(timer_windows) + 1
+    print(f"Конец обновления номеров таймеров. Обновленные таймеры: {timer_windows}")
+    print(f"Следующий доступный номер таймера: {next_timer_number}")
+
+
 def create_circular_timer(seconds):
+    global next_timer_number
+    print(f"Создание нового таймера на {seconds} секунд")
     start_time = datetime.now()
     end_time = start_time + timedelta(seconds=seconds)
     end_time_str = end_time.strftime("%H:%M")
@@ -76,13 +108,22 @@ def create_circular_timer(seconds):
         y = root.winfo_y() + (event.y - root.y)
         root.geometry(f"+{x}+{y}")
 
+    def on_closing():
+        nonlocal force_stop
+        force_stop = True
+        stop_event.set()
+        root.quit()
+
     root = tk.Tk()
-    root.geometry("300x315")  # Увеличил высоту для заголовка
+    root.geometry("300x315")
     root.resizable(False, False)
     root.attributes("-topmost", True)
-    root.overrideredirect(True)  # Убираем заголовок окна
+    root.overrideredirect(True)
+    root.protocol("WM_DELETE_WINDOW", on_closing)
 
-    timer_number = len(timer_windows) + 1
+    timer_number = next_timer_number
+    next_timer_number += 1
+    print(f"Новый таймер получил номер: {timer_number}")
     label = tk.Label(root, text=f"Таймер {timer_number}", font=("Arial", 12, "bold"), bg="white")
     label.pack()
 
@@ -99,6 +140,7 @@ def create_circular_timer(seconds):
     force_stop = False
 
     timer_windows.append((timer_number, root, stop_event, lambda: set_force_stop()))
+    print(f"Таймер {timer_number} добавлен в список. Текущие таймеры: {timer_windows}")
 
     def set_force_stop():
         nonlocal force_stop
@@ -119,26 +161,59 @@ def start_timer_thread(seconds):
 def close_timer_by_number(n):
     """Закрывает таймер с указанным номером."""
     global timer_windows
+    print(f"Попытка закрыть таймер {n}. Текущие таймеры: {timer_windows}")
+
+    # Создаем копию списка для безопасного удаления
+    timer_to_close = None
     for timer in timer_windows:
         if timer[0] == n:
-            _, window, stop_event, set_force_stop = timer
-            set_force_stop()
-            stop_event.set()
-            window.quit()
-            timer_windows.remove(timer)
-            print(f"Таймер {n} закрыт")
-            return
-    print(f"Таймер {n} не найден")
+            timer_to_close = timer
+            break
+
+    if timer_to_close is None:
+        print(f"Таймер {n} не найден")
+        speak(f"Таймер {n} не найден")
+        return
+
+    _, window, stop_event, set_force_stop = timer_to_close
+    print(f"Найдены данные таймера {n}: {timer_to_close}")
+
+    # Закрываем только найденный таймер
+    set_force_stop()
+    stop_event.set()
+
+    try:
+        window.quit()
+        window.destroy()
+    except Exception as e:
+        print(f"Ошибка при закрытии окна таймера: {e}")
+
+    # Удаляем таймер из списка
+    timer_windows.remove(timer_to_close)
+    print(f"Таймер {n} удален из списка. Оставшиеся таймеры: {timer_windows}")
+
+    # Обновляем номера оставшихся таймеров
+    update_timer_numbers()
+    print(f"Таймер {n} успешно закрыт")
+    speak(f"Таймер {n} закрыт")
 
 
 def close_all_timers():
     """Закрывает все таймеры без звука."""
-    global timer_windows
-    for window, stop_event, set_force_stop in timer_windows:
-        set_force_stop()  # Устанавливаем флаг принудительной остановки
-        stop_event.set()  # Останавливаем таймер
-        window.quit()  # Закрываем окно
+    global timer_windows, next_timer_number
+    print(f"Закрытие всех таймеров. Текущие таймеры: {timer_windows}")
+    for timer in timer_windows[:]:  # Создаем копию списка для безопасного удаления
+        _, window, stop_event, set_force_stop = timer
+        set_force_stop()
+        stop_event.set()
+        try:
+            window.quit()
+            window.destroy()
+        except Exception as e:
+            print(f"Ошибка при закрытии окна таймера: {e}")
     timer_windows.clear()
+    next_timer_number = 1  # Сбрасываем номер следующего таймера
+    print("Все таймеры закрыты")
 
 
 def play_sound():
@@ -344,11 +419,21 @@ def process_video_command(command):
 
 def main():
     recognizer = sr.Recognizer()
-
     with sr.Microphone() as source:
         print("Ассистент активен")
         while True:
             try:
+                # Проверяем очередь на наличие обновлений UI
+                try:
+                    while True:
+                        window, new_number = timer_queue.get_nowait()
+                        for widget in window.winfo_children():
+                            if isinstance(widget, tk.Label):
+                                widget.config(text=f"Таймер {new_number}")
+                                break
+                except queue.Empty:
+                    pass
+
                 # Проверяем подключение к интернету перед началом работы
                 while not check_internet():
                     print("Интернет отсутствует, жду подключения...")
@@ -409,5 +494,5 @@ def main():
 
 if __name__ == "__main__":
     set_volume(20)
-    speak(get_current_weather())
+    # speak(get_current_weather())
     main()
