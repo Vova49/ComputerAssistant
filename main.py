@@ -1,7 +1,6 @@
 import os
 import queue
 import re
-import threading
 import time
 import tkinter as tk
 from datetime import datetime
@@ -10,16 +9,17 @@ import speech_recognition as sr
 from speech_recognition.exceptions import RequestError
 
 from audio_manager import speak, set_volume, play_music, stop_music
-from timer_manager import start_timer_thread, close_timer_by_number, close_all_timers, timer_queue, number_words
-from weather_manager import get_current_weather
-from video_manager import process_video_command
-from utils import parse_time, check_internet, turn_on_radio
 from config import (
     DEFAULT_VOLUME, MUSIC_FOLDER,
     TIMER_COMMANDS, CLOSE_ALL_TIMERS_COMMANDS,
     TIME_COMMANDS, WEATHER_COMMANDS,
     RADIO_ON_COMMANDS, RADIO_OFF_COMMANDS
 )
+from timer_manager import start_timer_thread, close_timer_by_number, close_all_timers, timer_queue, number_words
+from utils import parse_time, check_internet, turn_on_radio
+from video_manager import process_video_command
+from weather_manager import get_current_weather
+
 
 def process_timer_command(command):
     """Обрабатывает команды, связанные с таймерами."""
@@ -92,99 +92,133 @@ def is_command_match(command, command_list):
 def handle_speech_recognition():
     """Выполняет попытку распознавания речи с обработкой ошибок."""
     recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Говорите...")
+    try:
+        with sr.Microphone() as source:
+            print("Говорите...")
+            try:
+                audio = recognizer.listen(source, timeout=5)
+                command = recognizer.recognize_google(audio, language="ru-RU").lower()
+                print(f"Вы сказали: {command}")
+                return command
+            except sr.WaitTimeoutError:
+                print("Микрофон не обнаружил звук, жду дальше.")
+                return None
+            except sr.UnknownValueError:
+                print("Не могу распознать, попробуйте снова.")
+                return None
+            except RequestError:
+                print("Ошибка сети. Проверьте интернет и попробуйте снова.")
+                return None
+            except Exception as e:
+                print(f"Произошла ошибка при распознавании: {e}")
+                return None
+    except (ValueError, OSError, IOError) as e:
+        print(f"Ошибка при доступе к микрофону: {e}")
+        return None
+
+
+def check_microphone():
+    """Проверяет наличие микрофона в системе."""
+    try:
+        # Попытка создать микрофон - если микрофона нет, вызовет исключение
+        with sr.Microphone() as source:
+            return True
+    except (ValueError, OSError, IOError) as e:
+        print(f"Ошибка при инициализации микрофона: {e}")
+        return False
+
+
+def wait_for_microphone():
+    """Ожидает появления микрофона в системе."""
+    while not check_microphone():
+        print("Микрофон не обнаружен. Ожидание подключения...")
         try:
-            audio = recognizer.listen(source, timeout=5)
-            command = recognizer.recognize_google(audio, language="ru-RU").lower()
-            print(f"Вы сказали: {command}")
-            return command
-        except sr.WaitTimeoutError:
-            print("Микрофон не обнаружил звук, жду дальше.")
-            return None
-        except sr.UnknownValueError:
-            print("Не могу распознать, попробуйте снова.")
-            return None
-        except RequestError:
-            print("Ошибка сети. Проверьте интернет и попробуйте снова.")
-            return None
-        except Exception as e:
-            print(f"Произошла ошибка при распознавании: {e}")
-            return None
+            speak("Микрофон не обнаружен. Пожалуйста, подключите микрофон.")
+        except:
+            print("Не удалось вывести голосовое сообщение")
+        time.sleep(5)
+    print("Микрофон обнаружен!")
+    try:
+        speak("Микрофон обнаружен.")
+    except:
+        pass
 
 
 def main():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("Ассистент активен")
+    # Ожидаем появления микрофона перед началом работы
+    wait_for_microphone()
 
-        # Регулировка уровня окружающего шума
-        print("Регулировка уровня шума, пожалуйста, подождите...")
-        recognizer.adjust_for_ambient_noise(source, duration=1)
-        print("Регулировка завершена, можно говорить")
+    print("Ассистент активен")
 
-        while True:
+    while True:
+        try:
+            # Проверяем очередь на наличие обновлений UI
+            update_timer_ui()
+
+            # Проверяем подключение к интернету
+            if not check_internet():
+                print("Интернет отсутствует, жду подключения...")
+                time.sleep(5)
+                continue
+
+            # Проверяем микрофон
+            if not check_microphone():
+                print("Микрофон был отключен. Ожидание...")
+                wait_for_microphone()
+                continue
+
+            command = handle_speech_recognition()
+            if not command:
+                continue
+
+            # Обработка команд
+            if "привет" in command:
+                speak("Привет!")
+            elif is_command_match(command, TIME_COMMANDS):
+                speak(f"Сейчас {datetime.now().strftime('%H:%M')}")
+            elif "спасибо" in command or "благодарю" in command:
+                speak("Пожалуйста")
+            elif "выключи компьютер" in command:
+                speak("Выключаю компьютер")
+                os.system("shutdown /s /t 0")
+
+            # Управление таймерами
+            elif "таймер" in command:
+                process_timer_command(command)
+
+            # Управление музыкой
+            elif "выключи музыку" in command:
+                stop_music()
+            elif "включи музыку" in command:
+                set_volume(DEFAULT_VOLUME)
+                play_music(MUSIC_FOLDER)
+
+            # Управление радио
+            elif is_command_match(command, RADIO_ON_COMMANDS):
+                set_volume(DEFAULT_VOLUME)
+                turn_on_radio()
+            elif is_command_match(command, RADIO_OFF_COMMANDS):
+                speak("Функция выключения радио еще не реализована")
+
+            # Погода
+            elif is_command_match(command, WEATHER_COMMANDS):
+                set_volume(DEFAULT_VOLUME)
+                speak(get_current_weather())
+
+            # Воспроизведение видео
+            elif "включи" in command:
+                process_video_command(command)
+
+            else:
+                print("Я вас не понял. Попробуйте снова.")
+
+        except Exception as e:
+            print(f"Произошла ошибка: {e}")
             try:
-                # Проверяем очередь на наличие обновлений UI
-                update_timer_ui()
+                speak("Произошла неизвестная ошибка. Попробуйте снова.")
+            except:
+                print("Не удалось вывести голосовое сообщение об ошибке")
 
-                # Проверяем подключение к интернету перед началом работы
-                if not check_internet():
-                    print("Интернет отсутствует, жду подключения...")
-                    time.sleep(5)
-                    continue
-
-                command = handle_speech_recognition()
-                if not command:
-                    continue
-
-                # Обработка команд
-                if "привет" in command:
-                    speak("Привет!")
-                elif is_command_match(command, TIME_COMMANDS):
-                    speak(f"Сейчас {datetime.now().strftime('%H:%M')}")
-                elif "спасибо" in command or "благодарю" in command:
-                    speak("Пожалуйста")
-                elif "выключи компьютер" in command:
-                    speak("Выключаю компьютер")
-                    os.system("shutdown /s /t 0")
-
-                # Управление таймерами
-                elif "таймер" in command:
-                    process_timer_command(command)
-
-                # Управление музыкой
-                elif "выключи музыку" in command:
-                    stop_music()
-                elif "включи музыку" in command:
-                    set_volume(DEFAULT_VOLUME)
-                    play_music(MUSIC_FOLDER)
-
-                # Управление радио
-                elif is_command_match(command, RADIO_ON_COMMANDS):
-                    set_volume(DEFAULT_VOLUME)
-                    turn_on_radio()
-                elif is_command_match(command, RADIO_OFF_COMMANDS):
-                    speak("Функция выключения радио еще не реализована")
-
-                # Погода
-                elif is_command_match(command, WEATHER_COMMANDS):
-                    set_volume(DEFAULT_VOLUME)
-                    speak(get_current_weather())
-
-                # Воспроизведение видео
-                elif "включи" in command:
-                    process_video_command(command)
-
-                else:
-                    print("Я вас не понял. Попробуйте снова.")
-
-            except Exception as e:
-                print(f"Произошла ошибка: {e}")
-                try:
-                    speak("Произошла неизвестная ошибка. Попробуйте снова.")
-                except:
-                    print("Не удалось вывести голосовое сообщение об ошибке")
 
 if __name__ == "__main__":
     set_volume(DEFAULT_VOLUME)
