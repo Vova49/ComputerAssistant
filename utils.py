@@ -1,8 +1,8 @@
 import re
+import pyautogui
 import requests
 import time
 import keyboard
-import pyautogui
 import pygetwindow as gw
 from config import RADIO_BROWSER_TAB
 
@@ -37,53 +37,49 @@ def check_internet():
         return False
 
 
-def turn_on_radio():
+def toggle_radio():
     """
-    Открывает радио в браузере.
-    Вместо жестко закодированных координат использует логику обнаружения элементов.
+    Переключает состояние радио в браузере (включает/выключает).
+    Кликает по кнопке плеера, учитывая текущее разрешение экрана.
     """
     try:
         # Ищем окно Chrome
-        windows = gw.getWindowsWithTitle("Google Chrome")
+        windows = gw.getWindowsWithTitle("Chrome")
         if not windows:
             print("Chrome не запущен, попытка запустить")
-            pyautogui.press('win')
-            time.sleep(0.5)
-            pyautogui.typewrite('chrome')
-            time.sleep(0.5)
-            pyautogui.press('enter')
-            time.sleep(2)
-            windows = gw.getWindowsWithTitle("Google Chrome")
+            keyboard.press_and_release('win')
+            time.sleep(0.2)
+            keyboard.write('chrome')
+            time.sleep(0.2)
+            keyboard.press_and_release('enter')
+            time.sleep(1)
+            windows = gw.getWindowsWithTitle("Chrome")  
 
         if windows:
-            chrome = windows[0]
-            chrome.activate()
+            # Переходим на окно Chrome
+            chrome_window = windows[0]
+            chrome_window.activate()
+            time.sleep(0.5)  # Ждём, чтобы окно активировалось
 
-            # Переходим на вкладку с радио (предположительно первая)
-            keyboard.press_and_release(f'ctrl+{RADIO_BROWSER_TAB}')
-            time.sleep(0.5)
+            # Нажимаем Ctrl+1 для перехода на первую вкладку
+            pyautogui.hotkey('ctrl', '1')
+            time.sleep(0.3)
 
-            # Ищем кнопку воспроизведения на основе поиска изображения
-            try:
-                # Методы поиска элементов на странице:
-                # 1. Поиск по оптическому распознаванию - безопаснее
-                play_button_location = None
+            # Получаем размер экрана
+            screen_width, screen_height = pyautogui.size()
 
-                # В первую очередь ищем по центру окна, где обычно находятся элементы управления
-                center_x = chrome.left + chrome.width // 2
-                center_y = chrome.top + chrome.height // 2
+            # Рассчитываем координаты в зависимости от разрешения экрана
+            # Исходные координаты (821, 177) для экрана 1920x1080
+            rel_x = 821 / 1920  # Примерно 0.427
+            rel_y = 177 / 1080  # Примерно 0.164
 
-                # Если есть изображение кнопки плей, можно использовать pyautogui.locateCenterOnScreen()
-                # Если нет - приближенный поиск по центру страницы
-                pyautogui.moveTo(center_x, center_y)
-                pyautogui.click()  # Активируем элементы управления
+            # Вычисляем абсолютные координаты для текущего разрешения
+            click_x = int(screen_width * rel_x)
+            click_y = int(screen_height * rel_y)
 
-                # Используем клик по центру страницы, что в большинстве случаев активирует плеер
-                print("Открываю радио в браузере")
+            # Кликаем по рассчитанным координатам
+            pyautogui.click(click_x, click_y)
 
-            except Exception as e:
-                print(f"Ошибка при поиске элементов управления: {e}")
-                # Если не удалось найти элементы автоматически, можно предложить пользователю указать нужное место
-                print("Радио открыто, но возможно потребуется ручное управление")
+            print(f"Переключение состояния радио выполнено по координатам {click_x}, {click_y}")
     except Exception as e:
-        print(f"Ошибка при открытии радио: {e}")
+        print(f"Ошибка при управлении радио: {e}")

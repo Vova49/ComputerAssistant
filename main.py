@@ -16,7 +16,7 @@ from config import (
     RADIO_ON_COMMANDS, RADIO_OFF_COMMANDS
 )
 from timer_manager import start_timer_thread, close_timer_by_number, close_all_timers, timer_queue, number_words
-from utils import parse_time, check_internet, turn_on_radio
+from utils import parse_time, check_internet, toggle_radio
 from video_manager import process_video_command
 from weather_manager import get_current_weather
 
@@ -137,7 +137,6 @@ def wait_for_microphone():
         except:
             print("Не удалось вывести голосовое сообщение")
         time.sleep(5)
-    print("Микрофон обнаружен!")
     try:
         speak("Микрофон обнаружен.")
     except:
@@ -193,12 +192,14 @@ def main():
                 set_volume(DEFAULT_VOLUME)
                 play_music(MUSIC_FOLDER)
 
-            # Управление радио
+            # Управление радио - используем одну функцию для включения/выключения
             elif is_command_match(command, RADIO_ON_COMMANDS):
                 set_volume(DEFAULT_VOLUME)
-                turn_on_radio()
+                speak("Включаю радио")
+                toggle_radio()
             elif is_command_match(command, RADIO_OFF_COMMANDS):
-                speak("Функция выключения радио еще не реализована")
+                speak("Выключаю радио")
+                toggle_radio()
 
             # Погода
             elif is_command_match(command, WEATHER_COMMANDS):
