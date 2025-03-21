@@ -1,146 +1,22 @@
 import os
 import queue
-import re
 import time
-import tkinter as tk
-from datetime import datetime
 
-import speech_recognition as sr
-from speech_recognition.exceptions import RequestError
-
-from audio_manager import speak, set_volume, play_music, stop_music
+from command_handlers import (
+    process_greeting_command, process_time_command, process_thanks_command,
+    process_system_command, process_music_command, process_radio_command,
+    process_weather_command
+)
 from config import (
-    DEFAULT_VOLUME, MUSIC_FOLDER,
-    TIMER_COMMANDS, CLOSE_ALL_TIMERS_COMMANDS,
     TIME_COMMANDS, WEATHER_COMMANDS,
     RADIO_ON_COMMANDS, RADIO_OFF_COMMANDS
 )
-from timer_manager import start_timer_thread, close_timer_by_number, close_all_timers, timer_queue, number_words
-from utils import parse_time, check_internet, toggle_radio
+from speech_recognition_manager import (
+    handle_speech_recognition, check_microphone, wait_for_microphone
+)
+from timer_manager import update_timer_ui, process_timer_command
+from utils import check_internet, is_command_match
 from video_manager import process_video_command
-from weather_manager import get_current_weather
-
-
-def process_timer_command(command):
-    """Обрабатывает команды, связанные с таймерами."""
-    try:
-        if any(word in command for word in TIMER_COMMANDS):
-            minutes = parse_time(command)
-            if minutes:
-                start_timer_thread(minutes)
-                speak(f"Таймер поставлен.")
-            else:
-                speak("Не удалось определить время таймера")
-
-        elif any(word in command for word in CLOSE_ALL_TIMERS_COMMANDS):
-            close_all_timers()
-            speak("Все таймеры выключены.")
-
-        else:
-            match = re.search(r"(закрой|выключи) (\d+|[а-я]+)[^\d]*таймер", command)
-            if match:
-                number_str = match.group(2)
-                timer_number = int(number_str) if number_str.isdigit() else number_words.get(number_str, None)
-                if timer_number:
-                    if close_timer_by_number(timer_number):
-                        speak(f"Таймер {timer_number} закрыт")
-                    else:
-                        speak(f"Не удалось закрыть таймер {timer_number}")
-                else:
-                    speak("Не удалось определить номер таймера.")
-    except Exception as e:
-        print(f"Ошибка при обработке команды таймера: {e}")
-        speak("Произошла ошибка при работе с таймером")
-
-
-def update_timer_ui():
-    """Обновляет интерфейс таймеров."""
-    try:
-        while True:
-            try:
-                window, new_number = timer_queue.get_nowait()
-                for widget in window.winfo_children():
-                    if isinstance(widget, tk.Label):
-                        widget.config(text=f"Таймер {new_number}")
-                        break
-            except queue.Empty:
-                break
-            except Exception as e:
-                print(f"Ошибка при обновлении UI таймера: {e}")
-                break
-    except Exception as e:
-        print(f"Ошибка при обработке очереди таймеров: {e}")
-
-
-def is_command_match(command, command_list):
-    """
-    Проверяет соответствие команды одному из списка ключевых фраз.
-    
-    Args:
-        command (str): Обрабатываемая команда
-        command_list (list): Список ключевых фраз
-        
-    Returns:
-        bool: True если команда соответствует одной из ключевых фраз
-    """
-    for cmd in command_list:
-        if cmd in command:
-            return True
-    return False
-
-
-def handle_speech_recognition():
-    """Выполняет попытку распознавания речи с обработкой ошибок."""
-    recognizer = sr.Recognizer()
-    try:
-        with sr.Microphone() as source:
-            print("Говорите...")
-            try:
-                audio = recognizer.listen(source, timeout=5)
-                command = recognizer.recognize_google(audio, language="ru-RU").lower()
-                print(f"Вы сказали: {command}")
-                return command
-            except sr.WaitTimeoutError:
-                print("Микрофон не обнаружил звук, жду дальше.")
-                return None
-            except sr.UnknownValueError:
-                print("Не могу распознать, попробуйте снова.")
-                return None
-            except RequestError:
-                print("Ошибка сети. Проверьте интернет и попробуйте снова.")
-                return None
-            except Exception as e:
-                print(f"Произошла ошибка при распознавании: {e}")
-                return None
-    except (ValueError, OSError, IOError) as e:
-        print(f"Ошибка при доступе к микрофону: {e}")
-        return None
-
-
-def check_microphone():
-    """Проверяет наличие микрофона в системе."""
-    try:
-        # Попытка создать микрофон - если микрофона нет, вызовет исключение
-        with sr.Microphone() as source:
-            return True
-    except (ValueError, OSError, IOError) as e:
-        print(f"Ошибка при инициализации микрофона: {e}")
-        return False
-
-
-def wait_for_microphone():
-    """Ожидает появления микрофона в системе."""
-    while not check_microphone():
-        print("Микрофон не обнаружен. Ожидание подключения...")
-        try:
-            speak("Микрофон не обнаружен. Пожалуйста, подключите микрофон.")
-        except:
-            print("Не удалось вывести голосовое сообщение")
-        time.sleep(5)
-    try:
-        speak("Микрофон обнаружен.")
-    except:
-        pass
 
 
 def main():
@@ -172,39 +48,31 @@ def main():
 
             # Обработка команд
             if "привет" in command:
-                speak("Привет!")
+                process_greeting_command()
             elif is_command_match(command, TIME_COMMANDS):
-                speak(f"Сейчас {datetime.now().strftime('%H:%M')}")
+                process_time_command()
             elif "спасибо" in command or "благодарю" in command:
-                speak("Пожалуйста")
+                process_thanks_command()
+
+            # Системные команды
             elif "выключи компьютер" in command:
-                speak("Выключаю компьютер")
-                os.system("shutdown /s /t 0")
+                process_system_command(command)
 
             # Управление таймерами
             elif "таймер" in command:
                 process_timer_command(command)
 
             # Управление музыкой
-            elif "выключи музыку" in command:
-                stop_music()
-            elif "включи музыку" in command:
-                set_volume(DEFAULT_VOLUME)
-                play_music(MUSIC_FOLDER)
+            elif "музыку" in command:
+                process_music_command(command)
 
-            # Управление радио - используем одну функцию для включения/выключения
-            elif is_command_match(command, RADIO_ON_COMMANDS):
-                set_volume(DEFAULT_VOLUME)
-                speak("Включаю радио")
-                toggle_radio()
-            elif is_command_match(command, RADIO_OFF_COMMANDS):
-                speak("Выключаю радио")
-                toggle_radio()
+            # Управление радио
+            elif is_command_match(command, RADIO_ON_COMMANDS) or is_command_match(command, RADIO_OFF_COMMANDS):
+                process_radio_command(command, RADIO_ON_COMMANDS, RADIO_OFF_COMMANDS)
 
             # Погода
             elif is_command_match(command, WEATHER_COMMANDS):
-                set_volume(DEFAULT_VOLUME)
-                speak(get_current_weather())
+                process_weather_command()
 
             # Воспроизведение видео
             elif "включи" in command:
@@ -216,12 +84,16 @@ def main():
         except Exception as e:
             print(f"Произошла ошибка: {e}")
             try:
+                from audio_manager import speak
                 speak("Произошла неизвестная ошибка. Попробуйте снова.")
             except:
                 print("Не удалось вывести голосовое сообщение об ошибке")
 
 
 if __name__ == "__main__":
+    from audio_manager import set_volume
+    from config import DEFAULT_VOLUME
+    
     set_volume(DEFAULT_VOLUME)
     try:
         main()

@@ -1,9 +1,10 @@
 import queue
+import re
 import threading
 import tkinter as tk
 from datetime import datetime, timedelta
 
-from audio_manager import set_volume, play_sound
+from audio_manager import set_volume, play_sound, speak
 from config import TIMER_VOLUME, TIMER_WINDOW_WIDTH, TIMER_WINDOW_HEIGHT
 
 timer_threads = []
@@ -19,6 +20,60 @@ number_words = {
     "один": 1, "два": 2, "три": 3, "четыре": 4, "пять": 5,
     "шесть": 6, "семь": 7, "восемь": 8, "девять": 9, "десять": 10
 }
+
+
+def process_timer_command(command):
+    """Обрабатывает команды, связанные с таймерами."""
+    from config import TIMER_COMMANDS, CLOSE_ALL_TIMERS_COMMANDS
+
+    try:
+        if any(word in command for word in TIMER_COMMANDS):
+            from utils import parse_time
+            minutes = parse_time(command)
+            if minutes:
+                start_timer_thread(minutes)
+                speak(f"Таймер поставлен.")
+            else:
+                speak("Не удалось определить время таймера")
+
+        elif any(word in command for word in CLOSE_ALL_TIMERS_COMMANDS):
+            close_all_timers()
+            speak("Все таймеры выключены.")
+
+        else:
+            match = re.search(r"(закрой|выключи) (\d+|[а-я]+)[^\d]*таймер", command)
+            if match:
+                number_str = match.group(2)
+                timer_number = int(number_str) if number_str.isdigit() else number_words.get(number_str, None)
+                if timer_number:
+                    if close_timer_by_number(timer_number):
+                        speak(f"Таймер {timer_number} закрыт")
+                    else:
+                        speak(f"Не удалось закрыть таймер {timer_number}")
+                else:
+                    speak("Не удалось определить номер таймера.")
+    except Exception as e:
+        print(f"Ошибка при обработке команды таймера: {e}")
+        speak("Произошла ошибка при работе с таймером")
+
+
+def update_timer_ui():
+    """Обновляет интерфейс таймеров."""
+    try:
+        while True:
+            try:
+                window, new_number = timer_queue.get_nowait()
+                for widget in window.winfo_children():
+                    if isinstance(widget, tk.Label):
+                        widget.config(text=f"Таймер {new_number}")
+                        break
+            except queue.Empty:
+                break
+            except Exception as e:
+                print(f"Ошибка при обновлении UI таймера: {e}")
+                break
+    except Exception as e:
+        print(f"Ошибка при обработке очереди таймеров: {e}")
 
 
 def cleanup_dead_threads():

@@ -7,6 +7,23 @@ import pygetwindow as gw
 from config import RADIO_BROWSER_TAB
 
 
+def is_command_match(command, command_list):
+    """
+    Проверяет соответствие команды одному из списка ключевых фраз.
+    
+    Args:
+        command (str): Обрабатываемая команда
+        command_list (list): Список ключевых фраз
+        
+    Returns:
+        bool: True если команда соответствует одной из ключевых фраз
+    """
+    for cmd in command_list:
+        if cmd in command:
+            return True
+    return False
+
+
 def parse_time(command):
     try:
         time_parts = re.findall(r"(\d+)\s*(час[а-я]*|минут[а-я]*|секунд[а-я]*)?", command)
@@ -58,7 +75,14 @@ def toggle_radio():
         if windows:
             # Переходим на окно Chrome
             chrome_window = windows[0]
-            chrome_window.activate()
+            try:
+                chrome_window.activate()
+            except Exception as e:
+                # Проверяем, что это не ложная ошибка с кодом 0 (успешное выполнение)
+                error_message = str(e)
+                if "Error code from Windows: 0" not in error_message:
+                    raise e
+                
             time.sleep(0.5)  # Ждём, чтобы окно активировалось
 
             # Нажимаем Ctrl+1 для перехода на первую вкладку
