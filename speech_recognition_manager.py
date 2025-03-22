@@ -21,15 +21,11 @@ def wait_for_microphone():
     while not check_microphone():
         print("Микрофон не обнаружен. Ожидание подключения...")
         try:
-            speak("Микрофон не обнаружен. Пожалуйста, подключите микрофон.")
+            speak("Пожалуйста, подключите микрофон.")
         except:
             print("Не удалось вывести голосовое сообщение")
         time.sleep(5)
 
-    try:
-        speak("Микрофон обнаружен.")
-    except:
-        pass
 
 
 def handle_speech_recognition():

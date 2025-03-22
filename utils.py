@@ -3,8 +3,16 @@ import pyautogui
 import requests
 import time
 import keyboard
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+import time
 import pygetwindow as gw
-from config import RADIO_BROWSER_TAB
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from config import RADIO_BROWSER_TAB, RADIO_URL
 
 
 def is_command_match(command, command_list):
@@ -55,55 +63,56 @@ def check_internet():
 
 
 def toggle_radio():
-    """
-    Переключает состояние радио в браузере (включает/выключает).
-    Кликает по кнопке плеера, учитывая текущее разрешение экрана.
-    """
-    try:
-        # Ищем окно Chrome
+    windows = gw.getWindowsWithTitle("Chrome")  # Ищем окна с "Chrome" в заголовке
+    if windows:
+        win = windows[0]  # Берем первое найденное окно
+        win.activate()  # Переключаемся на него
+        time.sleep(0.5)  # Задержка для корректного переключения
+        pyautogui.hotkey("ctrl", "1")  # Нажимаем Ctrl+1
+
+        time.sleep(0.5)  # Ждем после переключения вкладки
+
+        # Определяем текущее разрешение экрана
+        screen_width, screen_height = pyautogui.size()
+
+        # Вычисляем координаты кнопки в зависимости от разрешения
+        # Используем относительные координаты (примерно 43.5% ширины и 15.6% высоты)
+        x_rel, y_rel = 0.435, 0.156
+
+        # Вычисляем абсолютные координаты для текущего разрешения
+        x_pos = int(screen_width * x_rel)
+        y_pos = int(screen_height * y_rel)
+
+        # Выполняем клик
+        pyautogui.click(x_pos, y_pos)
+        print(f"Выполнен клик по координатам ({x_pos}, {y_pos}) на экране {screen_width}x{screen_height}")
+    else:
+        print("Chrome не найден. Запускаем Chrome...")
+        keyboard.press_and_release('win')
+        time.sleep(0.2)
+        keyboard.write('chrome')
+        time.sleep(0.2)
+        keyboard.press_and_release('enter')
+        time.sleep(2)  # Ждем запуска Chrome
+
+        # Повторно пробуем найти окно и кликнуть
         windows = gw.getWindowsWithTitle("Chrome")
-        if not windows:
-            print("Chrome не запущен, попытка запустить")
-            keyboard.press_and_release('win')
-            time.sleep(0.2)
-            keyboard.write('chrome')
-            time.sleep(0.2)
-            keyboard.press_and_release('enter')
-            time.sleep(1)
-            windows = gw.getWindowsWithTitle("Chrome")  
-
         if windows:
-            # Переходим на окно Chrome
-            chrome_window = windows[0]
-            try:
-                chrome_window.activate()
-            except Exception as e:
-                # Проверяем, что это не ложная ошибка с кодом 0 (успешное выполнение)
-                error_message = str(e)
-                if "Error code from Windows: 0" not in error_message:
-                    raise e
-                
-            time.sleep(0.5)  # Ждём, чтобы окно активировалось
+            win = windows[0]
+            win.activate()
+            time.sleep(0.5)
+            pyautogui.hotkey("ctrl", "1")
+            time.sleep(0.5)
 
-            # Нажимаем Ctrl+1 для перехода на первую вкладку
-            pyautogui.hotkey('ctrl', '1')
-            time.sleep(0.3)
-
-            # Получаем размер экрана
+            # Определяем текущее разрешение экрана
             screen_width, screen_height = pyautogui.size()
 
-            # Рассчитываем координаты в зависимости от разрешения экрана
-            # Исходные координаты (821, 177) для экрана 1920x1080
-            rel_x = 821 / 1920  # Примерно 0.427
-            rel_y = 177 / 1080  # Примерно 0.164
+            # Вычисляем координаты кнопки в зависимости от разрешения
+            x_rel, y_rel = 0.435, 0.156
+            x_pos = int(screen_width * x_rel)
+            y_pos = int(screen_height * y_rel)
 
-            # Вычисляем абсолютные координаты для текущего разрешения
-            click_x = int(screen_width * rel_x)
-            click_y = int(screen_height * rel_y)
-
-            # Кликаем по рассчитанным координатам
-            pyautogui.click(click_x, click_y)
-
-            print(f"Переключение состояния радио выполнено по координатам {click_x}, {click_y}")
-    except Exception as e:
-        print(f"Ошибка при управлении радио: {e}")
+            pyautogui.click(x_pos, y_pos)
+            print(f"Выполнен клик по координатам ({x_pos}, {y_pos}) на экране {screen_width}x{screen_height}")
+        else:
+            print("Не удалось найти Chrome даже после попытки запуска")

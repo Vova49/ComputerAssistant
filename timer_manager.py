@@ -27,6 +27,18 @@ def process_timer_command(command):
     from config import TIMER_COMMANDS, CLOSE_ALL_TIMERS_COMMANDS
 
     try:
+        # Проверка команды "таймер на X минут"
+        timer_на_pattern = re.search(r"таймер на (\d+) (минут|минуты|минуту)", command)
+        if timer_на_pattern:
+            minutes = int(timer_на_pattern.group(1))
+            if minutes > 0:
+                start_timer_thread(minutes * 60)  # Переводим минуты в секунды
+                speak(f"Таймер на {minutes} минут поставлен.")
+                return
+            else:
+                speak("Укажите время больше нуля.")
+                return
+                
         if any(word in command for word in TIMER_COMMANDS):
             from utils import parse_time
             minutes = parse_time(command)
@@ -166,7 +178,11 @@ def create_circular_timer(seconds):
                 hours, remainder = divmod(time_left, 3600)
                 minutes, secs = divmod(remainder, 60)
                 time_str = f"{hours:02}:{minutes:02}:{secs:02}" if hours > 0 else f"{minutes:02}:{secs:02}"
-                canvas.create_text(150, 130, text=time_str, font=("Arial", 40, "bold"), fill="red")
+
+                # Уменьшаем размер шрифта, если отображаются часы
+                font_size = 40 if hours == 0 else 30
+
+                canvas.create_text(150, 130, text=time_str, font=("Arial", font_size, "bold"), fill="red")
 
                 angle = -((time_left / total_seconds) * 360)
                 canvas.create_arc(30, 30, 270, 270, start=90, extent=angle, outline="red", width=10, style=tk.ARC)
