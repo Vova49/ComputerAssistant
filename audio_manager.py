@@ -1,9 +1,11 @@
 import os
 import subprocess
+
 import pygame
 import pyttsx3
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+
 from config import SOUND_SIGNAL_PATH, KMPLAYER_PATH, DEFAULT_VOLUME
 
 # Инициализация голосового движка

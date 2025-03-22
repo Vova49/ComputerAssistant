@@ -3,9 +3,7 @@ from datetime import datetime
 
 from audio_manager import speak, set_volume, play_music, stop_music
 from config import DEFAULT_VOLUME, MUSIC_FOLDER
-from timer_manager import process_timer_command
 from utils import toggle_radio
-from video_manager import process_video_command
 from weather_manager import get_current_weather
 
 

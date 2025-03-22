@@ -1,5 +1,6 @@
 import os
 import webbrowser
+
 from audio_manager import speak
 from config import CHROME_PATH
 

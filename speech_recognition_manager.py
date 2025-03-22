@@ -1,4 +1,5 @@
 import time
+
 import speech_recognition as sr
 from speech_recognition.exceptions import RequestError
 
@@ -25,7 +26,6 @@ def wait_for_microphone():
         except:
             print("Не удалось вывести голосовое сообщение")
         time.sleep(5)
-
 
 
 def handle_speech_recognition():

@@ -1,18 +1,10 @@
 import re
-import pyautogui
-import requests
 import time
+
 import keyboard
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
-import time
+import pyautogui
 import pygetwindow as gw
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
-from config import RADIO_BROWSER_TAB, RADIO_URL
+import requests
 
 
 def is_command_match(command, command_list):

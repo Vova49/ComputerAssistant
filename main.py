@@ -1,5 +1,3 @@
-import os
-import queue
 import time
 
 from command_handlers import (
@@ -93,7 +91,7 @@ def main():
 if __name__ == "__main__":
     from audio_manager import set_volume
     from config import DEFAULT_VOLUME
-    
+
     set_volume(DEFAULT_VOLUME)
     try:
         main()

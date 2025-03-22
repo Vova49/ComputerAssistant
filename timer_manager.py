@@ -38,7 +38,7 @@ def process_timer_command(command):
             else:
                 speak("Укажите время больше нуля.")
                 return
-                
+
         if any(word in command for word in TIMER_COMMANDS):
             from utils import parse_time
             minutes = parse_time(command)

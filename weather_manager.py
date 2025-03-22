@@ -1,5 +1,5 @@
 import requests
-from audio_manager import speak
+
 from config import WEATHER_API_KEY, DEFAULT_CITY
 
 
