@@ -2,8 +2,8 @@ import os
 from datetime import datetime
 
 from audio_manager import speak, set_volume, play_music, stop_music
-from config import DEFAULT_VOLUME, MUSIC_FOLDER
-from language_manager import LANGUAGE, get_commands
+from config import DEFAULT_VOLUME, MUSIC_FOLDER, LANGUAGE
+from language_manager import get_commands
 from utils import toggle_radio
 from weather_manager import get_current_weather
 

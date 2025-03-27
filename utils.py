@@ -88,7 +88,7 @@ def toggle_radio():
     Обрабатывает различные сценарии: несколько окон Chrome, свернутые окна,
     Chrome запущен в фоне, и другие краевые случаи.
     """
-    MAX_ATTEMPTS = 3  # Максимальное количество попыток
+    MAX_ATTEMPTS = 2  # Максимальное количество попыток
 
     def try_click_radio(attempt=1):
         # Определяем текущее разрешение экрана
@@ -127,10 +127,10 @@ def toggle_radio():
                 print("Закрываем меню Пуск и другие элементы интерфейса...")
             # Нажимаем Escape для закрытия меню Пуск
             pyautogui.press('esc')
-            time.sleep(0.2)
+            time.sleep(0.1)
 
             pyautogui.press('esc')
-            time.sleep(0.2)
+            time.sleep(0.1)
 
             return True
         except Exception as e:
@@ -177,19 +177,19 @@ def toggle_radio():
                     print(f"Все окна Chrome свернуты. Восстанавливаем: {target_window.title}")
                 if target_window.isMinimized:
                     target_window.restore()
-                    time.sleep(0.5)
+                    time.sleep(0.3)
 
             # Переводим окно на передний план и активируем
             target_window.activate()
-            time.sleep(0.5)  # Увеличиваем задержку до 1 секунды для надежности
+            time.sleep(0.3)  # Увеличиваем задержку до 1 секунды для надежности
 
             # Еще один метод активации - использование оконного менеджера Windows
             try:
                 # Альтернативный способ фокусировки на окно
                 target_window.moveTo(0, 0)  # Перемещаем окно в левый верхний угол
-                time.sleep(0.5)
+                time.sleep(0.3)
                 target_window.activate()  # Активируем еще раз после перемещения
-                time.sleep(0.5)
+                time.sleep(0.3)
             except Exception as e:
                 if LANGUAGE == "en":
                     print(f"Additional activation failed: {e}")
@@ -197,7 +197,7 @@ def toggle_radio():
                     print(f"Дополнительная активация не удалась: {e}")
 
             # Проверяем, что окно действительно активно
-            time.sleep(0.5)
+            time.sleep(0.2)
             active_window = gw.getActiveWindow()
 
             if active_window and "Chrome" in active_window.title:

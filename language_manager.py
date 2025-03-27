@@ -3,14 +3,12 @@
 Содержит словари команд для разных языков и функции перевода.
 """
 
-# Импортируем текущий язык из config
-
 # Команды на русском языке
 RU_COMMANDS = {
     "TIMER_COMMANDS": ["включи таймер", "поставь таймер", "засеки", "запусти таймер", "таймер на"],
     "CLOSE_ALL_TIMERS_COMMANDS": ["закрой все таймеры", "выключи все таймеры", "закрой все таймер",
                                   "выключи все таймер"],
-    "TIME_COMMANDS": ["скажи время", "какое время", "который час", "сколько времени", "сколько часов"],
+    "TIME_COMMANDS": ["скажи время", "какое время", "который час", "сколько времени"],
     "WEATHER_COMMANDS": ["погода", "какая погода", "сейчас тепло", "сколько градусов", "какая температура"],
     "RADIO_ON_COMMANDS": ["включи радио", "открой радио"],
     "RADIO_OFF_COMMANDS": ["выключи радио", "закрой радио"],
@@ -26,8 +24,7 @@ EN_COMMANDS = {
     "TIMER_COMMANDS": ["set timer", "start timer", "timer for"],
     "CLOSE_ALL_TIMERS_COMMANDS": ["close all timers", "turn off all timers", "stop all timers", "delate all timers",
                                   "stop all timer", "delete all timer"],
-    "TIME_COMMANDS": ["tell time", "what time", "what's the time", "current time", "what time is it",
-                      "what is the time"],
+    "TIME_COMMANDS": ["tell time", "what time", "what's the time", "current time"],
     "WEATHER_COMMANDS": ["weather", "how's the weather", "is it warm", "temperature", "how many degrees"],
     "RADIO_ON_COMMANDS": ["turn on radio", "play radio", "open radio"],
     "RADIO_OFF_COMMANDS": ["turn off radio", "stop radio", "close radio"],
@@ -73,10 +70,10 @@ def set_language(lang):
     Returns:
         str: Установленный код языка
     """
-    global LANGUAGE
+    import config
     if lang in ["ru", "en"]:
-        LANGUAGE = lang
-    return LANGUAGE
+        config.LANGUAGE = lang
+    return config.LANGUAGE
 
 
 def get_current_language():
@@ -86,6 +83,7 @@ def get_current_language():
     Returns:
         str: Текущий код языка
     """
+    from config import LANGUAGE
     return LANGUAGE
 
 
@@ -99,6 +97,7 @@ def get_commands(command_type):
     Returns:
         list: Список команд указанного типа
     """
+    from config import LANGUAGE
     commands = EN_COMMANDS if LANGUAGE == "en" else RU_COMMANDS
     return commands.get(command_type, [])
 
@@ -114,6 +113,7 @@ def get_message(key, *args):
     Returns:
         str: Сообщение на выбранном языке
     """
+    from config import LANGUAGE
     messages = MESSAGES.get(LANGUAGE, MESSAGES["en"])
     message = messages.get(key, key)
 
