@@ -5,7 +5,7 @@ import tkinter as tk
 from datetime import datetime, timedelta
 
 from audio_manager import set_volume, play_sound, speak
-from config import TIMER_VOLUME, TIMER_WINDOW_WIDTH, TIMER_WINDOW_HEIGHT
+from config import TIMER_VOLUME, TIMER_WINDOW_WIDTH, TIMER_WINDOW_HEIGHT, LANGUAGE
 
 timer_threads = []
 timer_windows = []
@@ -14,11 +14,20 @@ timer_queue = queue.Queue()
 # Добавляем мьютекс для синхронизации доступа к общим ресурсам
 timer_lock = threading.Lock()
 
+# Словари для числительных на разных языках
 number_words = {
-    "первый": 1, "второй": 2, "третий": 3, "четвертый": 4, "пятый": 5,
-    "шестой": 6, "седьмой": 7, "восьмой": 8, "девятый": 9, "десятый": 10,
-    "один": 1, "два": 2, "три": 3, "четыре": 4, "пять": 5,
-    "шесть": 6, "семь": 7, "восемь": 8, "девять": 9, "десять": 10
+    "ru": {
+        "первый": 1, "второй": 2, "третий": 3, "четвертый": 4, "пятый": 5,
+        "шестой": 6, "седьмой": 7, "восьмой": 8, "девятый": 9, "десятый": 10,
+        "один": 1, "два": 2, "три": 3, "четыре": 4, "пять": 5,
+        "шесть": 6, "семь": 7, "восемь": 8, "девять": 9, "десять": 10
+    },
+    "en": {
+        "first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5,
+        "sixth": 6, "seventh": 7, "eighth": 8, "ninth": 9, "tenth": 10,
+        "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10
+    }
 }
 
 
@@ -27,46 +36,88 @@ def process_timer_command(command):
     from config import TIMER_COMMANDS, CLOSE_ALL_TIMERS_COMMANDS
 
     try:
-        # Проверка команды "таймер на X минут"
-        timer_на_pattern = re.search(r"таймер на (\d+) (минут|минуты|минуту)", command)
-        if timer_на_pattern:
-            minutes = int(timer_на_pattern.group(1))
-            if minutes > 0:
-                start_timer_thread(minutes * 60)  # Переводим минуты в секунды
-                speak(f"Таймер на {minutes} минут поставлен.")
-                return
-            else:
-                speak("Укажите время больше нуля.")
-                return
+        if LANGUAGE == "en":
+            # Проверка команды "timer for X minutes" на английском
+            timer_for_pattern = re.search(r"timer for (\d+) (minutes|minute)", command)
+            if timer_for_pattern:
+                minutes = int(timer_for_pattern.group(1))
+                if minutes > 0:
+                    start_timer_thread(minutes * 60)  # Переводим минуты в секунды
+                    speak(f"Timer set for {minutes} minutes.")
+                    return
+                else:
+                    speak("Please specify a time greater than zero.")
+                    return
+        else:
+            # Проверка команды "таймер на X минут" на русском
+            timer_на_pattern = re.search(r"таймер на (\d+) (минут|минуты|минуту)", command)
+            if timer_на_pattern:
+                minutes = int(timer_на_pattern.group(1))
+                if minutes > 0:
+                    start_timer_thread(minutes * 60)  # Переводим минуты в секунды
+                    speak(f"Таймер на {minutes} минут поставлен.")
+                    return
+                else:
+                    speak("Укажите время больше нуля.")
+                    return
 
         if any(word in command for word in TIMER_COMMANDS):
             from utils import parse_time
             minutes = parse_time(command)
             if minutes:
                 start_timer_thread(minutes)
-                speak(f"Таймер поставлен.")
+                if LANGUAGE == "en":
+                    speak("Timer set.")
+                else:
+                    speak("Таймер поставлен.")
             else:
-                speak("Не удалось определить время таймера")
+                if LANGUAGE == "en":
+                    speak("Could not determine timer duration")
+                else:
+                    speak("Не удалось определить время таймера")
 
         elif any(word in command for word in CLOSE_ALL_TIMERS_COMMANDS):
             close_all_timers()
-            speak("Все таймеры выключены.")
+            if LANGUAGE == "en":
+                speak("All timers turned off.")
+            else:
+                speak("Все таймеры выключены.")
 
         else:
-            match = re.search(r"(закрой|выключи) (\d+|[а-я]+)[^\d]*таймер", command)
+            # Регулярное выражение для обработки команды закрытия таймера
+            if LANGUAGE == "en":
+                match = re.search(r"(close|turn off) (\d+|[a-z]+)[^\d]*timer", command)
+                words_dict = number_words["en"]
+            else:
+                match = re.search(r"(закрой|выключи) (\d+|[а-я]+)[^\d]*таймер", command)
+                words_dict = number_words["ru"]
+                
             if match:
                 number_str = match.group(2)
-                timer_number = int(number_str) if number_str.isdigit() else number_words.get(number_str, None)
+                timer_number = int(number_str) if number_str.isdigit() else words_dict.get(number_str, None)
                 if timer_number:
                     if close_timer_by_number(timer_number):
-                        speak(f"Таймер {timer_number} закрыт")
+                        if LANGUAGE == "en":
+                            speak(f"Timer {timer_number} closed")
+                        else:
+                            speak(f"Таймер {timer_number} закрыт")
                     else:
-                        speak(f"Не удалось закрыть таймер {timer_number}")
+                        if LANGUAGE == "en":
+                            speak(f"Could not close timer {timer_number}")
+                        else:
+                            speak(f"Не удалось закрыть таймер {timer_number}")
                 else:
-                    speak("Не удалось определить номер таймера.")
+                    if LANGUAGE == "en":
+                        speak("Could not determine timer number.")
+                    else:
+                        speak("Не удалось определить номер таймера.")
     except Exception as e:
-        print(f"Ошибка при обработке команды таймера: {e}")
-        speak("Произошла ошибка при работе с таймером")
+        if LANGUAGE == "en":
+            print(f"Error processing timer command: {e}")
+            speak("An error occurred while working with the timer")
+        else:
+            print(f"Ошибка при обработке команды таймера: {e}")
+            speak("Произошла ошибка при работе с таймером")
 
 
 def update_timer_ui():
@@ -146,7 +197,11 @@ def update_timer_numbers():
 def create_circular_timer(seconds):
     global next_timer_number
     try:
-        print(f"Создание нового таймера на {seconds} секунд")
+        if LANGUAGE == "en":
+            print(f"Creating new timer for {seconds} seconds")
+        else:
+            print(f"Создание нового таймера на {seconds} секунд")
+            
         start_time = datetime.now()
         end_time = start_time + timedelta(seconds=seconds)
         end_time_str = end_time.strftime("%H:%M")
@@ -167,7 +222,10 @@ def create_circular_timer(seconds):
                         play_sound()
                     root.after(3000, root.quit)
             except Exception as e:
-                print(f"Ошибка в update_timer: {e}")
+                if LANGUAGE == "en":
+                    print(f"Error in update_timer: {e}")
+                else:
+                    print(f"Ошибка в update_timer: {e}")
                 root.quit()
 
         def draw_timer(time_left):
@@ -187,9 +245,15 @@ def create_circular_timer(seconds):
                 angle = -((time_left / total_seconds) * 360)
                 canvas.create_arc(30, 30, 270, 270, start=90, extent=angle, outline="red", width=10, style=tk.ARC)
 
-                canvas.create_text(150, 180, text=f"Закончится в {end_time_str}", font=("Arial", 14), fill="black")
+                if LANGUAGE == "en":
+                    canvas.create_text(150, 180, text=f"Ends at {end_time_str}", font=("Arial", 14), fill="black")
+                else:
+                    canvas.create_text(150, 180, text=f"Закончится в {end_time_str}", font=("Arial", 14), fill="black")
             except Exception as e:
-                print(f"Ошибка в draw_timer: {e}")
+                if LANGUAGE == "en":
+                    print(f"Error in draw_timer: {e}")
+                else:
+                    print(f"Ошибка в draw_timer: {e}")
 
         def start_move(event):
             root.x = event.x
@@ -207,7 +271,10 @@ def create_circular_timer(seconds):
                 stop_event.set()
                 root.quit()
             except Exception as e:
-                print(f"Ошибка при закрытии таймера: {e}")
+                if LANGUAGE == "en":
+                    print(f"Error when closing timer: {e}")
+                else:
+                    print(f"Ошибка при закрытии таймера: {e}")
 
         root = tk.Tk()
         root.geometry(f"{TIMER_WINDOW_WIDTH}x{TIMER_WINDOW_HEIGHT}")
@@ -221,7 +288,10 @@ def create_circular_timer(seconds):
             timer_number = next_timer_number
             next_timer_number += 1
 
-        label = tk.Label(root, text=f"Таймер {timer_number}", font=("Arial", 12, "bold"), bg="white")
+        if LANGUAGE == "en":
+            label = tk.Label(root, text=f"Timer {timer_number}", font=("Arial", 12, "bold"), bg="white")
+        else:
+            label = tk.Label(root, text=f"Таймер {timer_number}", font=("Arial", 12, "bold"), bg="white")
         label.pack()
 
         canvas = tk.Canvas(root, width=TIMER_WINDOW_WIDTH, height=TIMER_WINDOW_HEIGHT - 15, bg="white")
@@ -248,7 +318,10 @@ def create_circular_timer(seconds):
         root.mainloop()
         stop_event.set()
     except Exception as e:
-        print(f"Ошибка при создании таймера: {e}")
+        if LANGUAGE == "en":
+            print(f"Error creating timer: {e}")
+        else:
+            print(f"Ошибка при создании таймера: {e}")
 
 
 def start_timer_thread(seconds):

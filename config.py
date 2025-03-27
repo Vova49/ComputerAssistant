@@ -3,6 +3,13 @@
 Содержит все настройки и пути, используемые в приложении.
 """
 
+# Текущий язык ассистента
+LANGUAGE = "en"  # Доступные языки: "ru" (русский), "en" (английский)
+
+from language_manager import (
+    get_commands
+)
+
 # Пути к файлам и директориям
 MUSIC_FOLDER = r"D:\музыка\Настроение"
 SOUND_SIGNAL_PATH = r"C:/Users/vovaf/PycharmProjects/ComputerAssistant/signal.mp3"
@@ -27,10 +34,10 @@ TIMER_WINDOW_HEIGHT = 315
 # Описания действий для открытия радио
 RADIO_BROWSER_TAB = 1  # Номер вкладки в Chrome
 
-# Команды
-TIMER_COMMANDS = ["включи таймер", "поставь таймер", "засеки", "запусти таймер", "таймер на", "таймер"]
-CLOSE_ALL_TIMERS_COMMANDS = ["закрой все таймеры", "выключи все таймеры", "закрой все таймер", "выключи все таймер"]
-TIME_COMMANDS = ["скажи время", "какое время", "который час"]
-WEATHER_COMMANDS = ["погода", "какая погода", "сейчас тепло", "сколько градусов", "какая температура"]
-RADIO_ON_COMMANDS = ["включи радио", "открой радио"]
-RADIO_OFF_COMMANDS = ["выключи радио", "закрой радио"]
+# Получаем актуальные команды в зависимости от выбранного языка
+TIMER_COMMANDS = get_commands("TIMER_COMMANDS")
+CLOSE_ALL_TIMERS_COMMANDS = get_commands("CLOSE_ALL_TIMERS_COMMANDS")
+TIME_COMMANDS = get_commands("TIME_COMMANDS")
+WEATHER_COMMANDS = get_commands("WEATHER_COMMANDS")
+RADIO_ON_COMMANDS = get_commands("RADIO_ON_COMMANDS")
+RADIO_OFF_COMMANDS = get_commands("RADIO_OFF_COMMANDS")

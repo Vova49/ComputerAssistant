@@ -7,7 +7,10 @@ from command_handlers import (
 )
 from config import (
     TIME_COMMANDS, WEATHER_COMMANDS,
-    RADIO_ON_COMMANDS, RADIO_OFF_COMMANDS
+    RADIO_ON_COMMANDS, RADIO_OFF_COMMANDS, LANGUAGE
+)
+from language_manager import (
+    get_message, get_commands
 )
 from speech_recognition_manager import (
     handle_speech_recognition, check_microphone, wait_for_microphone
@@ -21,7 +24,7 @@ def main():
     # Ожидаем появления микрофона перед началом работы
     wait_for_microphone()
 
-    print("Ассистент активен")
+    print(get_message("assistant_active"))
 
     while True:
         try:
@@ -30,13 +33,13 @@ def main():
 
             # Проверяем подключение к интернету
             if not check_internet():
-                print("Интернет отсутствует, жду подключения...")
+                print(get_message("no_internet"))
                 time.sleep(5)
                 continue
 
             # Проверяем микрофон
             if not check_microphone():
-                print("Микрофон был отключен. Ожидание...")
+                print(get_message("microphone_disconnected"))
                 wait_for_microphone()
                 continue
 
@@ -44,24 +47,32 @@ def main():
             if not command:
                 continue
 
+            # Получаем актуальные команды в зависимости от языка
+            greeting_commands = get_commands("GREETING_COMMANDS")
+            thanks_commands = get_commands("THANKS_COMMANDS")
+            shutdown_commands = get_commands("SHUTDOWN_COMMANDS")
+            music_on_commands = get_commands("MUSIC_ON_COMMANDS")
+            music_off_commands = get_commands("MUSIC_OFF_COMMANDS")
+            video_command_prefix = "play" if LANGUAGE == "en" else "включи"
+
             # Обработка команд
-            if "привет" in command:
+            if any(greeting in command for greeting in greeting_commands):
                 process_greeting_command()
             elif is_command_match(command, TIME_COMMANDS):
                 process_time_command()
-            elif "спасибо" in command or "благодарю" in command:
+            elif any(thanks in command for thanks in thanks_commands):
                 process_thanks_command()
 
             # Системные команды
-            elif "выключи компьютер" in command:
+            elif any(shutdown in command for shutdown in shutdown_commands):
                 process_system_command(command)
 
             # Управление таймерами
-            elif "таймер" in command:
+            elif "timer" in command and LANGUAGE == "en" or "таймер" in command and LANGUAGE == "ru":
                 process_timer_command(command)
 
             # Управление музыкой
-            elif "музыку" in command:
+            elif any(music_cmd in command for music_cmd in music_on_commands + music_off_commands):
                 process_music_command(command)
 
             # Управление радио
@@ -73,19 +84,22 @@ def main():
                 process_weather_command()
 
             # Воспроизведение видео
-            elif "включи" in command:
+            elif video_command_prefix in command:
                 process_video_command(command)
 
             else:
-                print("Я вас не понял. Попробуйте снова.")
+                print(get_message("not_understood"))
 
         except Exception as e:
-            print(f"Произошла ошибка: {e}")
+            print(get_message("error_occurred", e))
             try:
                 from audio_manager import speak
-                speak("Произошла неизвестная ошибка. Попробуйте снова.")
+                speak(get_message("unknown_error"))
             except:
-                print("Не удалось вывести голосовое сообщение об ошибке")
+                if LANGUAGE == "en":
+                    print("Failed to output voice error message")
+                else:
+                    print("Не удалось вывести голосовое сообщение об ошибке")
 
 
 if __name__ == "__main__":
@@ -96,6 +110,6 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\nПрограмма завершена пользователем")
+        print("\n" + get_message("program_terminated"))
     except Exception as e:
-        print(f"Критическая ошибка: {e}")
+        print(get_message("critical_error", e))

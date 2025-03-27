@@ -3,37 +3,51 @@ from datetime import datetime
 
 from audio_manager import speak, set_volume, play_music, stop_music
 from config import DEFAULT_VOLUME, MUSIC_FOLDER
+from language_manager import LANGUAGE, get_commands
 from utils import toggle_radio
 from weather_manager import get_current_weather
 
 
 def process_greeting_command():
     """Обрабатывает приветствие."""
-    speak("Привет!")
+    if LANGUAGE == "en":
+        speak("Hello!")
+    else:
+        speak("Привет!")
 
 
 def process_time_command():
     """Обрабатывает запрос о времени."""
-    speak(f"Сейчас {datetime.now().strftime('%H:%M')}")
+    if LANGUAGE == "en":
+        speak(f"It's {datetime.now().strftime('%H:%M')}")
+    else:
+        speak(f"Сейчас {datetime.now().strftime('%H:%M')}")
 
 
 def process_thanks_command():
     """Обрабатывает благодарность."""
-    speak("Пожалуйста")
+    if LANGUAGE == "en":
+        speak("You're welcome")
+    else:
+        speak("Пожалуйста")
 
 
 def process_system_command(command):
     """Обрабатывает системные команды."""
-    if "выключи компьютер" in command:
+    if LANGUAGE == "en":
+        speak("Shutting down the computer")
+    else:
         speak("Выключаю компьютер")
-        os.system("shutdown /s /t 0")
+    os.system("shutdown /s /t 0")
 
 
 def process_music_command(command):
     """Обрабатывает команды по управлению музыкой."""
-    if "выключи музыку" in command:
+    music_off_commands = get_commands("MUSIC_OFF_COMMANDS")
+
+    if any(cmd in command for cmd in music_off_commands):
         stop_music()
-    elif "включи музыку" in command:
+    else:
         set_volume(DEFAULT_VOLUME)
         play_music(MUSIC_FOLDER)
 
@@ -44,10 +58,16 @@ def process_radio_command(command, radio_on_commands, radio_off_commands):
 
     if is_command_match(command, radio_on_commands):
         set_volume(DEFAULT_VOLUME)
-        speak("Включаю радио")
+        if LANGUAGE == "en":
+            speak("Turning on radio")
+        else:
+            speak("Включаю радио")
         toggle_radio()
     elif is_command_match(command, radio_off_commands):
-        speak("Выключаю радио")
+        if LANGUAGE == "en":
+            speak("Turning off radio")
+        else:
+            speak("Выключаю радио")
         toggle_radio()
 
 
