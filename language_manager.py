@@ -7,7 +7,7 @@
 RU_COMMANDS = {
     "TIMER_COMMANDS": ["включи таймер", "поставь таймер", "засеки", "запусти таймер", "таймер на"],
     "CLOSE_ALL_TIMERS_COMMANDS": ["закрой все таймеры", "выключи все таймеры", "закрой все таймер",
-                                  "выключи все таймер"],
+                                  "выключи все таймер", "стоп все таймеры", "стоп все таймер"],
     "TIME_COMMANDS": ["скажи время", "какое время", "который час", "сколько времени"],
     "WEATHER_COMMANDS": ["погода", "какая погода", "сейчас тепло", "сколько градусов", "какая температура"],
     "RADIO_ON_COMMANDS": ["включи радио", "открой радио"],
@@ -16,7 +16,8 @@ RU_COMMANDS = {
     "THANKS_COMMANDS": ["спасибо", "благодарю"],
     "SHUTDOWN_COMMANDS": ["выключи компьютер"],
     "MUSIC_ON_COMMANDS": ["включи музыку"],
-    "MUSIC_OFF_COMMANDS": ["выключи музыку"]
+    "MUSIC_OFF_COMMANDS": ["выключи музыку"],
+    "CALCULATOR_COMMANDS": ["открой калькулятор", "включи калькулятор", "калькулятор"]
 }
 
 # Команды на английском языке
@@ -32,7 +33,8 @@ EN_COMMANDS = {
     "THANKS_COMMANDS": ["thank you", "thanks"],
     "SHUTDOWN_COMMANDS": ["shutdown computer", "turn off computer"],
     "MUSIC_ON_COMMANDS": ["play music", "turn on music"],
-    "MUSIC_OFF_COMMANDS": ["stop music", "turn off music"]
+    "MUSIC_OFF_COMMANDS": ["stop music", "turn off music"],
+    "CALCULATOR_COMMANDS": ["open calculator", "start calculator", "launch calculator", "calculator"]
 }
 
 # Словари сообщений

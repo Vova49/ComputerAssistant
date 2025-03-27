@@ -3,11 +3,11 @@ import time
 from command_handlers import (
     process_greeting_command, process_time_command, process_thanks_command,
     process_system_command, process_music_command, process_radio_command,
-    process_weather_command
+    process_weather_command, process_calculator_command
 )
 from config import (
     TIME_COMMANDS, WEATHER_COMMANDS,
-    RADIO_ON_COMMANDS, RADIO_OFF_COMMANDS, LANGUAGE
+    RADIO_ON_COMMANDS, RADIO_OFF_COMMANDS, LANGUAGE, CALCULATOR_COMMANDS
 )
 from language_manager import (
     get_message, get_commands
@@ -86,6 +86,10 @@ def main():
             # Воспроизведение видео
             elif video_command_prefix in command:
                 process_video_command(command)
+
+            # Калькулятор
+            elif is_command_match(command, CALCULATOR_COMMANDS):
+                process_calculator_command()
 
             else:
                 print(get_message("not_understood"))

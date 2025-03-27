@@ -1,4 +1,5 @@
 import os
+import subprocess
 from datetime import datetime
 
 from audio_manager import speak, set_volume, play_music, stop_music
@@ -75,3 +76,24 @@ def process_weather_command():
     """Обрабатывает запрос о погоде."""
     set_volume(DEFAULT_VOLUME)
     speak(get_current_weather())
+
+
+def process_calculator_command():
+    """Открывает системный калькулятор."""
+    try:
+        if LANGUAGE == "en":
+            speak("Opening calculator")
+            print("Opening calculator")
+        else:
+            speak("Открываю калькулятор")
+            print("Открываю калькулятор")
+
+        # Запуск калькулятора
+        subprocess.Popen("calc.exe")
+    except Exception as e:
+        if LANGUAGE == "en":
+            print(f"Error opening calculator: {e}")
+            speak("Could not open calculator")
+        else:
+            print(f"Ошибка при открытии калькулятора: {e}")
+            speak("Не удалось открыть калькулятор")
