@@ -17,7 +17,10 @@ RU_COMMANDS = {
     "SHUTDOWN_COMMANDS": ["выключи компьютер"],
     "MUSIC_ON_COMMANDS": ["включи музыку"],
     "MUSIC_OFF_COMMANDS": ["выключи музыку"],
-    "CALCULATOR_COMMANDS": ["открой калькулятор", "включи калькулятор", "калькулятор"]
+    "CALCULATOR_COMMANDS": ["открой калькулятор", "включи калькулятор", "калькулятор"],
+    "PAUSE_TIMER_COMMANDS": ["останови таймер", "пауза таймер", "поставь таймер на паузу", "приостанови таймер",
+                             "стоп таймер"],
+    "RESUME_TIMER_COMMANDS": ["продолжи таймер", "возобнови таймер", "запусти таймер дальше", "возобновить таймер"]
 }
 
 # Команды на английском языке
@@ -34,7 +37,9 @@ EN_COMMANDS = {
     "SHUTDOWN_COMMANDS": ["shutdown computer", "turn off computer"],
     "MUSIC_ON_COMMANDS": ["play music", "turn on music"],
     "MUSIC_OFF_COMMANDS": ["stop music", "turn off music"],
-    "CALCULATOR_COMMANDS": ["open calculator", "start calculator", "launch calculator", "calculator"]
+    "CALCULATOR_COMMANDS": ["open calculator", "start calculator", "launch calculator", "calculator"],
+    "PAUSE_TIMER_COMMANDS": ["pause timer", "stop timer", "hold timer"],
+    "RESUME_TIMER_COMMANDS": ["resume timer", "continue timer", "start timer again"]
 }
 
 # Словари сообщений

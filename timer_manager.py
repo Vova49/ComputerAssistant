@@ -160,7 +160,7 @@ def update_timer_numbers():
             valid_timers = []
             for timer in timer_windows:
                 try:
-                    _, window, _, _ = timer
+                    _, window, _, _, _ = timer  # Обновлено для учета toggle_pause
                     if window.winfo_exists():
                         valid_timers.append(timer)
                     else:
@@ -177,14 +177,15 @@ def update_timer_numbers():
 
             new_timer_windows = []
             for i, timer in enumerate(timer_windows, 1):
-                old_number, window, stop_event, set_force_stop = timer
+                old_number, window, stop_event, set_force_stop, toggle_pause = timer  # Обновлено для учета toggle_pause
                 if old_number != i:
                     print(f"Обновление номера таймера с {old_number} на {i}")
                     try:
                         timer_queue.put((window, i))
                     except Exception as e:
                         print(f"Ошибка при обновлении номера таймера: {e}")
-                new_timer_windows.append((i, window, stop_event, set_force_stop))
+                new_timer_windows.append(
+                    (i, window, stop_event, set_force_stop, toggle_pause))  # Обновлено для учета toggle_pause
 
             timer_windows.clear()
             timer_windows.extend(new_timer_windows)
@@ -209,12 +210,13 @@ def create_circular_timer(seconds):
         def update_timer():
             nonlocal seconds, force_stop
             # Убираем обращение к глобальной переменной total_seconds
-            nonlocal total_seconds
+            nonlocal total_seconds, is_paused
             try:
                 if seconds >= 0 and not stop_event.is_set():
                     canvas.delete("all")
                     draw_timer(seconds)
-                    seconds -= 1
+                    if not is_paused:
+                        seconds -= 1
                     root.after(1000, update_timer)
                 else:
                     if not force_stop:
@@ -231,7 +233,7 @@ def create_circular_timer(seconds):
         def draw_timer(time_left):
             try:
                 # Используем локальную переменную total_seconds
-                nonlocal total_seconds
+                nonlocal total_seconds, is_paused
                 canvas.create_oval(30, 30, 270, 270, outline="black", width=9)
                 hours, remainder = divmod(time_left, 3600)
                 minutes, secs = divmod(remainder, 60)
@@ -247,13 +249,31 @@ def create_circular_timer(seconds):
 
                 if LANGUAGE == "en":
                     canvas.create_text(150, 180, text=f"Ends at {end_time_str}", font=("Arial", 14), fill="black")
+                    pause_button_text = "Pause" if not is_paused else "Resume"
                 else:
                     canvas.create_text(150, 180, text=f"Закончится в {end_time_str}", font=("Arial", 14), fill="black")
+                    pause_button_text = "Пауза" if not is_paused else "Продолжить"
+
+                # Изменяем текст на кнопке в зависимости от состояния таймера
+                pause_button.config(text=pause_button_text)
+
+                # Позиционируем кнопку на канвасе
+                canvas.create_window(150, 210, window=pause_button)
+                
             except Exception as e:
                 if LANGUAGE == "en":
                     print(f"Error in draw_timer: {e}")
                 else:
                     print(f"Ошибка в draw_timer: {e}")
+
+        def toggle_pause():
+            nonlocal is_paused
+            is_paused = not is_paused
+            if LANGUAGE == "en":
+                print(f"Timer {'paused' if is_paused else 'resumed'}")
+            else:
+                print(f"Таймер {'приостановлен' if is_paused else 'возобновлен'}")
+            draw_timer(seconds)
 
         def start_move(event):
             root.x = event.x
@@ -292,23 +312,30 @@ def create_circular_timer(seconds):
             label = tk.Label(root, text=f"Timer {timer_number}", font=("Arial", 12, "bold"), bg="white")
         else:
             label = tk.Label(root, text=f"Таймер {timer_number}", font=("Arial", 12, "bold"), bg="white")
-        label.pack()
+        label.pack(pady=(5, 0))
 
-        canvas = tk.Canvas(root, width=TIMER_WINDOW_WIDTH, height=TIMER_WINDOW_HEIGHT - 15, bg="white")
+        canvas = tk.Canvas(root, width=TIMER_WINDOW_WIDTH, height=TIMER_WINDOW_HEIGHT - 25, bg="white")
         canvas.pack()
+
+        # Создаем кнопку с минимальным размером рамки
+        pause_button_text = "Пауза" if LANGUAGE == "ru" else "Pause"
+        pause_button = tk.Button(root, text=pause_button_text, command=toggle_pause,
+                                 font=("Arial", 10), bg="lightblue", relief=tk.FLAT,
+                                 padx=5, pady=1, borderwidth=1)
 
         canvas.bind("<ButtonPress-1>", start_move)
         canvas.bind("<B1-Motion>", move_window)
 
         # Создаем локальную переменную total_seconds вместо глобальной
         total_seconds = seconds
+        is_paused = False
 
         stop_event = threading.Event()
         force_stop = False
 
         # Добавление таймера в список с синхронизацией
         with timer_lock:
-            timer_windows.append((timer_number, root, stop_event, lambda: set_force_stop()))
+            timer_windows.append((timer_number, root, stop_event, lambda: set_force_stop(), toggle_pause))
 
         def set_force_stop():
             nonlocal force_stop
@@ -359,7 +386,7 @@ def close_timer_by_number(n):
                 print(f"Таймер {n} не найден")
                 return False
 
-            _, window, stop_event, set_force_stop = timer_to_close
+            _, window, stop_event, set_force_stop, toggle_pause = timer_to_close
             set_force_stop()
             stop_event.set()
 
@@ -388,7 +415,7 @@ def close_all_timers():
             print(f"Закрытие всех таймеров. Текущие таймеры: {timer_windows}")
             for timer in timer_windows[:]:
                 try:
-                    _, window, stop_event, set_force_stop = timer
+                    _, window, stop_event, set_force_stop, toggle_pause = timer
                     if window.winfo_exists():
                         set_force_stop()
                         stop_event.set()
@@ -402,3 +429,101 @@ def close_all_timers():
         print("Все таймеры закрыты")
     except Exception as e:
         print(f"Ошибка при закрытии всех таймеров: {e}")
+
+
+def pause_timer_by_number(n):
+    """Ставит таймер на паузу по номеру."""
+    global timer_windows
+    try:
+        with timer_lock:
+            print(f"Попытка приостановить таймер {n}. Текущие таймеры: {timer_windows}")
+
+            timer_to_pause = None
+            for timer in timer_windows:
+                try:
+                    if timer[0] == n and timer[1].winfo_exists():
+                        timer_to_pause = timer
+                        break
+                except Exception as e:
+                    print(f"Ошибка при проверке таймера: {e}")
+                    continue
+
+            if timer_to_pause is None:
+                print(f"Таймер {n} не найден")
+                return False
+
+            _, _, _, _, toggle_pause = timer_to_pause
+            toggle_pause()  # Вызываем функцию переключения паузы
+            print(f"Таймер {n} успешно приостановлен/возобновлен")
+            return True
+    except Exception as e:
+        print(f"Ошибка при изменении состояния таймера: {e}")
+        return False
+
+
+def process_pause_resume_timer_command(command):
+    """Обрабатывает команды паузы и возобновления таймера."""
+    try:
+        from config import PAUSE_TIMER_COMMANDS, RESUME_TIMER_COMMANDS
+        from utils import is_command_match
+
+        # Регулярное выражение для извлечения номера таймера
+        if LANGUAGE == "en":
+            match = re.search(r"(pause|stop|resume|continue|start) (\d+|[a-z]+)[^\d]*timer", command)
+            # Альтернативный вариант: "timer X stop/pause"
+            if not match:
+                alt_match = re.search(r"timer (\d+|[a-z]+)[^\d]* (pause|stop|resume|continue|start)", command)
+                if alt_match:
+                    # Создаем новый паттерн поиска, где действие и номер поменяны местами
+                    action = alt_match.group(2)
+                    number = alt_match.group(1)
+                    # Теперь ищем по новому паттерну, где действие идет первым
+                    match = re.search(f"{action} {number}", f"{action} {number} timer")
+            words_dict = number_words["en"]
+        else:
+            match = re.search(r"(останови|пауза|приостанови|продолжи|возобнови|запусти|стоп) (\d+|[а-я]+)[^\d]*таймер",
+                              command)
+            # Альтернативный вариант: "таймер X стоп/пауза"
+            if not match:
+                alt_match = re.search(
+                    r"таймер (\d+|[а-я]+)[^\d]* (останови|пауза|приостанови|продолжи|возобнови|запусти|стоп)", command)
+                if alt_match:
+                    # Создаем новый паттерн поиска, где действие и номер поменяны местами
+                    action = alt_match.group(2)
+                    number = alt_match.group(1)
+                    # Теперь ищем по новому паттерну, где действие идет первым
+                    match = re.search(f"{action} {number}", f"{action} {number} таймер")
+            words_dict = number_words["ru"]
+
+        if match:
+            number_str = match.group(2)
+            timer_number = int(number_str) if number_str.isdigit() else words_dict.get(number_str, None)
+
+            if timer_number:
+                if pause_timer_by_number(timer_number):
+                    if LANGUAGE == "en":
+                        speak(f"Timer {timer_number} paused/resumed")
+                    else:
+                        speak(f"Таймер {timer_number} приостановлен/возобновлен")
+                else:
+                    if LANGUAGE == "en":
+                        speak(f"Could not find timer {timer_number}")
+                    else:
+                        speak(f"Не удалось найти таймер {timer_number}")
+            else:
+                if LANGUAGE == "en":
+                    speak("Could not determine timer number")
+                else:
+                    speak("Не удалось определить номер таймера")
+        else:
+            if LANGUAGE == "en":
+                speak("Please specify which timer to pause or resume")
+            else:
+                speak("Укажите, какой именно таймер приостановить или возобновить")
+    except Exception as e:
+        if LANGUAGE == "en":
+            print(f"Error processing pause/resume command: {e}")
+            speak("An error occurred while pausing/resuming the timer")
+        else:
+            print(f"Ошибка при обработке команды паузы/возобновления: {e}")
+            speak("Произошла ошибка при паузе/возобновлении таймера")

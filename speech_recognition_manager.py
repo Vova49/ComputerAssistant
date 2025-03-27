@@ -51,7 +51,7 @@ def handle_speech_recognition():
             else:
                 print("Говорите...")
             try:
-                audio = recognizer.listen(source, timeout=5)
+                audio = recognizer.listen(source, timeout=3)
 
                 # Выбираем язык распознавания в зависимости от настроек
                 lang = "en-US" if LANGUAGE == "en" else "ru-RU"

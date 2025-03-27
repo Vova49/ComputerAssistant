@@ -53,6 +53,8 @@ def main():
             shutdown_commands = get_commands("SHUTDOWN_COMMANDS")
             music_on_commands = get_commands("MUSIC_ON_COMMANDS")
             music_off_commands = get_commands("MUSIC_OFF_COMMANDS")
+            pause_timer_commands = get_commands("PAUSE_TIMER_COMMANDS")
+            resume_timer_commands = get_commands("RESUME_TIMER_COMMANDS")
             video_command_prefix = "play" if LANGUAGE == "en" else "включи"
 
             # Обработка команд
@@ -69,7 +71,27 @@ def main():
 
             # Управление таймерами
             elif "timer" in command and LANGUAGE == "en" or "таймер" in command and LANGUAGE == "ru":
-                process_timer_command(command)
+                # Явно проверяем отдельные ключевые слова для приостановки/возобновления таймера
+                pause_keywords_ru = ["останови", "пауза", "приостанови", "стоп"]
+                resume_keywords_ru = ["продолжи", "возобнови", "запусти"]
+                pause_keywords_en = ["pause", "stop", "hold"]
+                resume_keywords_en = ["resume", "continue", "start"]
+
+                # Проверяем наличие ключевых слов в команде
+                command_words = command.lower().split()
+                if LANGUAGE == "en":
+                    has_pause_keyword = any(word in command_words for word in pause_keywords_en)
+                    has_resume_keyword = any(word in command_words for word in resume_keywords_en)
+                else:
+                    has_pause_keyword = any(word in command_words for word in pause_keywords_ru)
+                    has_resume_keyword = any(word in command_words for word in resume_keywords_ru)
+
+                # Проверяем, является ли команда командой управления таймером
+                if has_pause_keyword or has_resume_keyword:
+                    from timer_manager import process_pause_resume_timer_command
+                    process_pause_resume_timer_command(command)
+                else:
+                    process_timer_command(command)
 
             # Управление музыкой
             elif any(music_cmd in command for music_cmd in music_on_commands + music_off_commands):
