@@ -3,16 +3,20 @@
 Содержит все настройки и пути, используемые в приложении.
 """
 
+import os
+
 from language_manager import (
     get_commands
 )
+from utils import get_application_path
 
 # Текущий язык ассистента
 LANGUAGE = "ru"  # Доступные языки: "ru" (русский), "en" (английский)
 
 # Пути к файлам и директориям
 MUSIC_FOLDER = r"D:\музыка\Настроение"
-SOUND_SIGNAL_PATH = r"C:/Users/vovaf/PycharmProjects/ComputerAssistant/signal.mp3"
+# Определяем путь к звуковому файлу относительно папки приложения
+SOUND_SIGNAL_PATH = os.path.join(get_application_path(), "signal.mp3")
 KMPLAYER_PATH = r"C:\Program Files (x86)\KMPlayer\KMPlayer.exe"
 CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 

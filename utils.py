@@ -1,4 +1,6 @@
+import os
 import re
+import sys
 import time
 
 import keyboard
@@ -7,6 +9,23 @@ import pygetwindow as gw
 import requests
 
 from config import LANGUAGE
+
+
+def get_application_path():
+    """
+    Возвращает путь к папке, в которой находится приложение.
+    Работает как для запуска из .py файла, так и для скомпилированного .exe
+    
+    Returns:
+        str: Абсолютный путь к папке приложения
+    """
+    if getattr(sys, 'frozen', False):
+        # Если приложение скомпилировано (exe)
+        application_path = os.path.dirname(sys.executable)
+    else:
+        # Если приложение запущено как скрипт
+        application_path = os.path.dirname(os.path.abspath(__file__))
+    return application_path
 
 
 def is_command_match(command, command_list):
