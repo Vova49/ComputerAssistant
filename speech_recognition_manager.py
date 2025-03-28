@@ -4,7 +4,7 @@ import speech_recognition as sr
 from speech_recognition.exceptions import RequestError
 
 from audio_manager import speak
-from config import LANGUAGE
+from config import LANGUAGE, SPEECH_ENERGY_THRESHOLD, SPEECH_PAUSE_THRESHOLD, SPEECH_RECOGNITION_TIMEOUT
 
 
 def check_microphone():
@@ -41,22 +41,43 @@ def wait_for_microphone():
         time.sleep(5)
 
 
+# Создаем один экземпляр распознавателя для повторного использования
+_recognizer = sr.Recognizer()
+_recognizer.energy_threshold = SPEECH_ENERGY_THRESHOLD  # Настраиваем чувствительность
+_recognizer.pause_threshold = SPEECH_PAUSE_THRESHOLD  # Уменьшаем время паузы для более быстрой реакции
+_recognizer.dynamic_energy_threshold = True  # Включаем динамическую настройку порога энергии
+
+
 def handle_speech_recognition():
-    """Выполняет попытку распознавания речи с обработкой ошибок."""
-    recognizer = sr.Recognizer()
+    """Выполняет попытку распознавания речи с обработкой ошибок и оптимизированной скоростью."""
+    global _recognizer
+    
     try:
         with sr.Microphone() as source:
             if LANGUAGE == "en":
                 print("Speak...")
             else:
                 print("Говорите...")
+
             try:
-                audio = recognizer.listen(source, timeout=3)
+                # Используем предварительную настройку для шумоподавления
+                # только при первом вызове для ускорения работы
+                if not hasattr(handle_speech_recognition, 'adjusted'):
+                    _recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                    handle_speech_recognition.adjusted = True
+
+                # Уменьшенное время ожидания для более быстрой реакции
+                audio = _recognizer.listen(source, timeout=SPEECH_RECOGNITION_TIMEOUT)
 
                 # Выбираем язык распознавания в зависимости от настроек
                 lang = "en-US" if LANGUAGE == "en" else "ru-RU"
 
-                command = recognizer.recognize_google(audio, language=lang).lower()
+                # Добавляем показатель уверенности для более точных результатов
+                command = _recognizer.recognize_google(
+                    audio,
+                    language=lang,
+                    show_all=False  # Для более быстрой обработки
+                ).lower()
 
                 if LANGUAGE == "en":
                     print(f"You said: {command}")

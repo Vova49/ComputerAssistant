@@ -8,8 +8,6 @@ import pyautogui
 import pygetwindow as gw
 import requests
 
-from config import LANGUAGE
-
 
 def get_application_path():
     """
@@ -56,6 +54,9 @@ def parse_time(command):
         int: Общее количество секунд или None, если не удалось распознать
     """
     try:
+        # Импортируем LANGUAGE здесь, чтобы избежать круговой импортации
+        from config import LANGUAGE
+        
         if LANGUAGE == "en":
             # Шаблон для английского языка
             time_parts = re.findall(r"(\d+)\s*(hour[s]?|minute[s]?|second[s]?)?", command)
@@ -107,6 +108,9 @@ def toggle_radio():
     Обрабатывает различные сценарии: несколько окон Chrome, свернутые окна,
     Chrome запущен в фоне, и другие краевые случаи.
     """
+    # Импортируем LANGUAGE здесь, чтобы избежать круговой импортации
+    from config import LANGUAGE
+    
     MAX_ATTEMPTS = 2  # Максимальное количество попыток
 
     def try_click_radio(attempt=1):

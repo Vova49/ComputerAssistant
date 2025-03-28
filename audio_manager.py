@@ -6,10 +6,17 @@ import pyttsx3
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 
-from config import SOUND_SIGNAL_PATH, KMPLAYER_PATH, DEFAULT_VOLUME, LANGUAGE
+from config import SOUND_SIGNAL_PATH, KMPLAYER_PATH, DEFAULT_VOLUME, LANGUAGE, SPEECH_RATE, VOICE_VOLUME, PYGAME_BUFFER
 
-# Инициализация голосового движка
+# Инициализация голосового движка с оптимизированными параметрами
 engine = pyttsx3.init()
+engine.setProperty('rate', SPEECH_RATE)  # Устанавливаем оптимальную скорость речи
+engine.setProperty('volume', VOICE_VOLUME)  # Устанавливаем оптимальную громкость речи
+
+# Предварительная инициализация pygame для ускорения воспроизведения звука
+pygame.mixer.pre_init(44100, -16, 2, PYGAME_BUFFER)
+pygame.mixer.init()
+
 kmplayer_process = None
 
 
@@ -75,7 +82,7 @@ def set_volume(level):
 
 
 def play_sound():
-    """Воспроизводит звуковой сигнал уведомления."""
+    """Воспроизводит звуковой сигнал уведомления с оптимизацией скорости."""
     try:
         if not os.path.exists(SOUND_SIGNAL_PATH):
             if LANGUAGE == "en":
@@ -84,8 +91,15 @@ def play_sound():
                 print(f"Файл звукового сигнала не найден: {SOUND_SIGNAL_PATH}")
             return
 
-        pygame.mixer.init()
-        pygame.mixer.music.load(SOUND_SIGNAL_PATH)
+        # Используем уже инициализированный микшер
+        if not pygame.mixer.get_init():
+            pygame.mixer.init(44100, -16, 2, PYGAME_BUFFER)
+
+        # Предварительная загрузка звука для ускорения воспроизведения
+        if not hasattr(play_sound, 'sound_loaded'):
+            pygame.mixer.music.load(SOUND_SIGNAL_PATH)
+            play_sound.sound_loaded = True
+            
         pygame.mixer.music.play()
     except Exception as e:
         if LANGUAGE == "en":
@@ -96,26 +110,28 @@ def play_sound():
 
 def speak(text):
     """
-    Произносит текст с помощью синтезатора речи.
+    Произносит текст с помощью синтезатора речи с оптимизацией скорости.
     
     Args:
         text (str): Текст для произнесения
     """
     try:
-        # Устанавливаем голос в зависимости от выбранного языка
-        voices = engine.getProperty('voices')
-        if LANGUAGE == "en":
-            # Ищем английский голос
-            for voice in voices:
-                if "english" in voice.name.lower():
-                    engine.setProperty('voice', voice.id)
-                    break
-        else:
-            # Ищем русский голос
-            for voice in voices:
-                if "russian" in voice.name.lower():
-                    engine.setProperty('voice', voice.id)
-                    break
+        # Используем кэширование для ускорения поиска голоса
+        if not hasattr(speak, 'voice_set'):
+            voices = engine.getProperty('voices')
+            if LANGUAGE == "en":
+                # Ищем английский голос
+                for voice in voices:
+                    if "english" in voice.name.lower():
+                        engine.setProperty('voice', voice.id)
+                        break
+            else:
+                # Ищем русский голос
+                for voice in voices:
+                    if "russian" in voice.name.lower():
+                        engine.setProperty('voice', voice.id)
+                        break
+            speak.voice_set = True
         
         engine.say(text)
         engine.runAndWait()
