@@ -112,11 +112,10 @@ def process_timer_command(command):
                     else:
                         speak("Не удалось определить номер таймера.")
     except Exception as e:
+        print(f"Ошибка при обработке команды таймера: {e}")
         if LANGUAGE == "en":
-            print(f"Error processing timer command: {e}")
             speak("An error occurred while working with the timer")
         else:
-            print(f"Ошибка при обработке команды таймера: {e}")
             speak("Произошла ошибка при работе с таймером")
 
 
@@ -198,10 +197,7 @@ def update_timer_numbers():
 def create_circular_timer(seconds):
     global next_timer_number
     try:
-        if LANGUAGE == "en":
-            print(f"Creating new timer for {seconds} seconds")
-        else:
-            print(f"Создание нового таймера на {seconds} секунд")
+        print(f"Создание нового таймера на {seconds} секунд")
             
         start_time = datetime.now()
         end_time = start_time + timedelta(seconds=seconds)
@@ -224,10 +220,7 @@ def create_circular_timer(seconds):
                         play_sound()
                     root.after(3000, root.quit)
             except Exception as e:
-                if LANGUAGE == "en":
-                    print(f"Error in update_timer: {e}")
-                else:
-                    print(f"Ошибка в update_timer: {e}")
+                print(f"Ошибка в update_timer: {e}")
                 root.quit()
 
         def draw_timer(time_left):
@@ -261,18 +254,12 @@ def create_circular_timer(seconds):
                 canvas.create_window(150, 210, window=pause_button)
                 
             except Exception as e:
-                if LANGUAGE == "en":
-                    print(f"Error in draw_timer: {e}")
-                else:
-                    print(f"Ошибка в draw_timer: {e}")
+                print(f"Ошибка в draw_timer: {e}")
 
         def toggle_pause():
             nonlocal is_paused
             is_paused = not is_paused
-            if LANGUAGE == "en":
-                print(f"Timer {'paused' if is_paused else 'resumed'}")
-            else:
-                print(f"Таймер {'приостановлен' if is_paused else 'возобновлен'}")
+            print(f"Таймер {'приостановлен' if is_paused else 'возобновлен'}")
             draw_timer(seconds)
 
         def start_move(event):
@@ -291,10 +278,7 @@ def create_circular_timer(seconds):
                 stop_event.set()
                 root.quit()
             except Exception as e:
-                if LANGUAGE == "en":
-                    print(f"Error when closing timer: {e}")
-                else:
-                    print(f"Ошибка при закрытии таймера: {e}")
+                print(f"Ошибка при закрытии таймера: {e}")
 
         def cleanup_timer_on_exit():
             """Удаляет запись таймера из списка после завершения"""
@@ -362,10 +346,7 @@ def create_circular_timer(seconds):
         root.mainloop()
         stop_event.set()
     except Exception as e:
-        if LANGUAGE == "en":
-            print(f"Error creating timer: {e}")
-        else:
-            print(f"Ошибка при создании таймера: {e}")
+        print(f"Ошибка при создании таймера: {e}")
 
 
 def start_timer_thread(seconds):
@@ -538,9 +519,8 @@ def process_pause_resume_timer_command(command):
             else:
                 speak("Укажите, какой именно таймер приостановить или возобновить")
     except Exception as e:
+        print(f"Ошибка при обработке команды паузы/возобновления: {e}")
         if LANGUAGE == "en":
-            print(f"Error processing pause/resume command: {e}")
             speak("An error occurred while pausing/resuming the timer")
         else:
-            print(f"Ошибка при обработке команды паузы/возобновления: {e}")
             speak("Произошла ошибка при паузе/возобновлении таймера")
