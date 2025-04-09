@@ -296,6 +296,27 @@ def create_circular_timer(seconds):
                 else:
                     print(f"Ошибка при закрытии таймера: {e}")
 
+        def cleanup_timer_on_exit():
+            """Удаляет запись таймера из списка после завершения"""
+            nonlocal timer_number
+            try:
+                with timer_lock:
+                    for i, timer in enumerate(timer_windows):
+                        if timer[0] == timer_number:
+                            timer_windows.pop(i)
+                            break
+                update_timer_numbers()
+                cleanup_dead_threads()
+                if LANGUAGE == "en":
+                    print(f"Timer {timer_number} removed after completion")
+                else:
+                    print(f"Таймер {timer_number} удален после завершения")
+            except Exception as e:
+                if LANGUAGE == "en":
+                    print(f"Error cleaning up timer: {e}")
+                else:
+                    print(f"Ошибка при очистке таймера: {e}")
+
         root = tk.Tk()
         root.geometry(f"{TIMER_WINDOW_WIDTH}x{TIMER_WINDOW_HEIGHT}")
         root.resizable(False, False)
@@ -342,6 +363,8 @@ def create_circular_timer(seconds):
             force_stop = True
 
         update_timer()
+        # Регистрируем функцию очистки, которая будет выполнена после завершения mainloop
+        root.after(total_seconds * 1000 + 3500, cleanup_timer_on_exit)
         root.mainloop()
         stop_event.set()
     except Exception as e:
