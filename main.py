@@ -122,10 +122,7 @@ def main():
                 from audio_manager import speak
                 speak(get_message("unknown_error"))
             except:
-                if LANGUAGE == "en":
-                    print("Failed to output voice error message")
-                else:
-                    print("Не удалось вывести голосовое сообщение об ошибке")
+                print("Не удалось вывести голосовое сообщение об ошибке")
 
 
 if __name__ == "__main__":

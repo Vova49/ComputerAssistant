@@ -35,21 +35,12 @@ def ensure_sound_on():
         mute = volume.GetMute()
         if mute:
             volume.SetMute(0, None)
-            if LANGUAGE == "en":
-                print("Sound was muted. Enabling.")
-            else:
-                print("Звук был отключен. Включаю.")
+            print("Звук был отключен. Включаю.")
         else:
-            if LANGUAGE == "en":
-                print("Sound is already on.")
-            else:
-                print("Звук уже включен.")
+            print("Звук уже включен.")
 
     except Exception as e:
-        if LANGUAGE == "en":
-            print(f"Could not check or enable sound: {e}")
-        else:
-            print(f"Не удалось проверить или включить звук: {e}")
+        print(f"Не удалось проверить или включить звук: {e}")
 
 
 def set_volume(level):
@@ -68,20 +59,11 @@ def set_volume(level):
             )
             volume = interface.QueryInterface(IAudioEndpointVolume)
             volume.SetMasterVolumeLevelScalar(level / 100, None)
-            if LANGUAGE == "en":
-                print(f"Volume set to {level}%.")
-            else:
-                print(f"Громкость установлена на {level}%.")
+            print(f"Громкость установлена на {level}%.")
         except Exception as e:
-            if LANGUAGE == "en":
-                print(f"Could not set volume: {e}")
-            else:
-                print(f"Не удалось установить громкость: {e}")
+            print(f"Не удалось установить громкость: {e}")
     else:
-        if LANGUAGE == "en":
-            print("Volume level should be between 0 and 100.")
-        else:
-            print("Уровень громкости должен быть от 0 до 100.")
+        print("Уровень громкости должен быть от 0 до 100.")
 
 
 def play_sound():
@@ -95,10 +77,7 @@ def play_sound():
             return
             
         if not os.path.exists(SOUND_SIGNAL_PATH):
-            if LANGUAGE == "en":
-                print(f"Sound signal file not found: {SOUND_SIGNAL_PATH}")
-            else:
-                print(f"Файл звукового сигнала не найден: {SOUND_SIGNAL_PATH}")
+            print(f"Файл звукового сигнала не найден: {SOUND_SIGNAL_PATH}")
             return
 
         # Используем уже инициализированный микшер
@@ -112,10 +91,7 @@ def play_sound():
             
         pygame.mixer.music.play()
     except Exception as e:
-        if LANGUAGE == "en":
-            print(f"Error playing sound: {e}")
-        else:
-            print(f"Ошибка при воспроизведении звука: {e}")
+        print(f"Ошибка при воспроизведении звука: {e}")
 
 
 def speak(text):
@@ -146,10 +122,7 @@ def speak(text):
         engine.say(text)
         engine.runAndWait()
     except Exception as e:
-        if LANGUAGE == "en":
-            print(f"Error speaking text: {e}")
-        else:
-            print(f"Ошибка при произнесении текста: {e}")
+        print(f"Ошибка при произнесении текста: {e}")
 
 
 def play_music(folder_path):
@@ -165,41 +138,32 @@ def play_music(folder_path):
     if not os.path.exists(KMPLAYER_PATH):
         if LANGUAGE == "en":
             speak("Cannot find KMPlayer.")
-            print(f"KMPlayer not found at path: {KMPLAYER_PATH}")
         else:
             speak("Не могу найти плеер KMPlayer.")
-            print(f"KMPlayer не найден по пути: {KMPLAYER_PATH}")
+        print(f"KMPlayer не найден по пути: {KMPLAYER_PATH}")
         return
 
     if not os.path.exists(folder_path):
         if LANGUAGE == "en":
             speak("Cannot find music folder.")
-            print(f"Music folder not found: {folder_path}")
         else:
             speak("Не могу найти папку с музыкой.")
-            print(f"Папка с музыкой не найдена: {folder_path}")
+        print(f"Папка с музыкой не найдена: {folder_path}")
         return
 
     try:
         # Проверяем, не запущен ли уже плеер
         if kmplayer_process and kmplayer_process.poll() is None:
-            if LANGUAGE == "en":
-                print("KMPlayer is already running")
-            else:
-                print("KMPlayer уже запущен")
+            print("KMPlayer уже запущен")
         else:
             set_volume(DEFAULT_VOLUME)
             kmplayer_process = subprocess.Popen([KMPLAYER_PATH, folder_path])
-            if LANGUAGE == "en":
-                print(f"Playing music from folder: {folder_path}")
-            else:
-                print(f"Включаю музыку из папки: {folder_path}")
+            print(f"Включаю музыку из папки: {folder_path}")
     except Exception as e:
+        print(f"Произошла ошибка при запуске плеера: {e}")
         if LANGUAGE == "en":
-            print(f"An error occurred while starting the player: {e}")
             speak("Could not start the player.")
         else:
-            print(f"Произошла ошибка при запуске плеера: {e}")
             speak("Не удалось запустить плеер.")
 
 
@@ -210,10 +174,7 @@ def stop_music():
         try:
             kmplayer_process.terminate()
             kmplayer_process = None
-            if LANGUAGE == "en":
-                print("Music stopped.")
-            else:
-                print("Музыка выключена.")
+            print("Музыка выключена.")
         except Exception as e:
             if LANGUAGE == "en":
                 speak(f"Could not stop music: {e}")

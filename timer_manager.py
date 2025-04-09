@@ -307,15 +307,9 @@ def create_circular_timer(seconds):
                             break
                 update_timer_numbers()
                 cleanup_dead_threads()
-                if LANGUAGE == "en":
-                    print(f"Timer {timer_number} removed after completion")
-                else:
-                    print(f"Таймер {timer_number} удален после завершения")
+                print(f"Таймер {timer_number} удален после завершения")
             except Exception as e:
-                if LANGUAGE == "en":
-                    print(f"Error cleaning up timer: {e}")
-                else:
-                    print(f"Ошибка при очистке таймера: {e}")
+                print(f"Ошибка при очистке таймера: {e}")
 
         root = tk.Tk()
         root.geometry(f"{TIMER_WINDOW_WIDTH}x{TIMER_WINDOW_HEIGHT}")
