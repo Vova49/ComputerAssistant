@@ -19,6 +19,9 @@ pygame.mixer.init()
 
 kmplayer_process = None
 
+# Флаг для предотвращения автоматического воспроизведения звука при запуске
+is_first_start = True
+
 
 def ensure_sound_on():
     """Проверяет, что звук включен, и включает его при необходимости."""
@@ -84,6 +87,13 @@ def set_volume(level):
 def play_sound():
     """Воспроизводит звуковой сигнал уведомления с оптимизацией скорости."""
     try:
+        global is_first_start
+
+        # Пропускаем первое воспроизведение при запуске программы
+        if is_first_start:
+            is_first_start = False
+            return
+            
         if not os.path.exists(SOUND_SIGNAL_PATH):
             if LANGUAGE == "en":
                 print(f"Sound signal file not found: {SOUND_SIGNAL_PATH}")
