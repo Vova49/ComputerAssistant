@@ -8,6 +8,8 @@ import pyautogui
 import pygetwindow as gw
 import requests
 
+# Глобальная переменная для отслеживания первого запуска радио в текущей сессии
+_is_first_radio_launch = True
 
 def get_application_path():
     """
@@ -102,17 +104,8 @@ def check_internet():
         return False
 
 
-def toggle_radio():
-    """
-    Улучшенная функция для переключения на окно Chrome и запуска радио.
-    Обрабатывает различные сценарии: несколько окон Chrome, свернутые окна,
-    Chrome запущен в фоне, и другие краевые случаи.
-    """
-    # Импортируем LANGUAGE здесь, чтобы избежать круговой импортации
-
-    MAX_ATTEMPTS = 2  # Максимальное количество попыток
-
-    def try_click_radio(attempt=1):
+def try_click_radio():
+    try:
         # Определяем текущее разрешение экрана
         screen_width, screen_height = pyautogui.size()
 
@@ -121,161 +114,160 @@ def toggle_radio():
         x_pos = int(screen_width * x_rel)
         y_pos = int(screen_height * y_rel)
 
+        # Даем время на полную загрузку страницы
+        time.sleep(1)
+
         # Выполняем клик
         pyautogui.click(x_pos, y_pos)
         print(f"Выполнен клик по координатам ({x_pos}, {y_pos}) на экране {screen_width}x{screen_height}")
+        return True
+    except Exception as e:
+        print(f"Ошибка при попытке клика: {e}")
+        return False
 
+
+def toggle_radio():
+    """
+    Улучшенная функция для управления радио.
+    Находит вкладку с радио по заголовку и переключается на неё.
+    """
+    # Импортируем настройки радио и языка
+    from config import RADIO_TITLE
+    global _is_first_radio_launch
+
+    print(f"Начинаем процесс управления радио...")
+    
     # Проверка, запущен ли Chrome
-    def is_chrome_running():
-        try:
-            chrome_windows = gw.getWindowsWithTitle("Chrome")
-            return len(chrome_windows) > 0
-        except Exception as e:
-            print(f"Ошибка при проверке запущенного Chrome: {e}")
-            return False
+    chrome_running = False
+    chrome_windows = []
+    try:
+        chrome_windows = gw.getWindowsWithTitle("Chrome")
+        chrome_running = len(chrome_windows) > 0
+    except Exception as e:
+        print(f"Ошибка при проверке запущенного Chrome: {e}")
 
-    # Закрываем меню Пуск и другие возможные элементы интерфейса
-    def close_system_ui():
-        try:
-            print("Закрываем меню Пуск и другие элементы интерфейса...")
-            # Нажимаем Escape для закрытия меню Пуск
-            pyautogui.press('esc')
-            time.sleep(0.1)
+    # Если Chrome не запущен, сообщаем об ошибке
+    if not chrome_running:
+        print("Chrome не запущен. Пожалуйста, запустите Chrome и откройте вкладку с радио.")
+        return False
 
-            pyautogui.press('esc')
-            time.sleep(0.1)
+    # Chrome запущен, активируем и обрабатываем окно
+    try:
+        print("Попытка активации Chrome...")
 
-            return True
-        except Exception as e:
-            print(f"Ошибка при закрытии системного интерфейса: {e}")
-            return False
+        # Сначала пробуем переключиться через Alt+Tab
+        print("Использую Alt+Tab для переключения на Chrome...")
+        keyboard.press('alt')
+        time.sleep(0.3)  # Увеличенная задержка
+        keyboard.press('tab')
+        time.sleep(0.3)  # Увеличенная задержка
+        keyboard.release('tab')
+        time.sleep(0.3)
+        keyboard.release('alt')
+        time.sleep(0.5)  # Увеличенная задержка для завершения анимации
 
-    # Попытка активировать окно Chrome
-    def activate_chrome_window(attempt=1):
-        if attempt > MAX_ATTEMPTS:
-            print(f"Превышено максимальное количество попыток ({MAX_ATTEMPTS})")
-            return False
+        # Проверяем, переключились ли мы на Chrome
+        active_window = gw.getActiveWindow()
+        if not active_window or "Chrome" not in active_window.title:
+            print("Первая попытка переключения не удалась, пробуем еще раз...")
 
-        try:
-            chrome_windows = gw.getWindowsWithTitle("Chrome")
+            # Находим подходящее окно Chrome
+            target_window = None
+            for window in chrome_windows:
+                if not window.isMinimized:
+                    target_window = window
+                    break
 
-            if not chrome_windows:
-                print(f"Chrome не найден (попытка {attempt})")
-                return False
-
-            # Пробуем найти неминимизированное окно Chrome
-            visible_windows = [win for win in chrome_windows if not win.isMinimized]
-
-            if visible_windows:
-                target_window = visible_windows[0]
-                print(f"Найдено видимое окно Chrome: {target_window.title}")
-            else:
-                # Если все окна свернуты, восстанавливаем первое
+            # Если все окна свернуты, восстанавливаем первое
+            if not target_window and chrome_windows:
                 target_window = chrome_windows[0]
-                print(f"Все окна Chrome свернуты. Восстанавливаем: {target_window.title}")
-                if target_window.isMinimized:
+                print(f"Восстанавливаем свернутое окно Chrome...")
+                try:
                     target_window.restore()
-                    time.sleep(0.3)
+                    time.sleep(0.5)  # Увеличенная задержка
+                except Exception as e:
+                    print(f"Ошибка при восстановлении окна: {e}")
+                    return False
 
-            # Переводим окно на передний план и активируем
-            target_window.activate()
-            time.sleep(0.3)  # Увеличиваем задержку до 1 секунды для надежности
+            if target_window:
+                # Пробуем активировать окно
+                try:
+                    target_window.activate()
+                    time.sleep(0.5)  # Увеличенная задержка
 
-            # Еще один метод активации - использование оконного менеджера Windows
-            try:
-                # Альтернативный способ фокусировки на окно
-                target_window.moveTo(0, 0)  # Перемещаем окно в левый верхний угол
-                time.sleep(0.3)
-                target_window.activate()  # Активируем еще раз после перемещения
-                time.sleep(0.3)
-            except Exception as e:
-                print(f"Дополнительная активация не удалась: {e}")
+                    # Еще раз пробуем Alt+Tab если активация не сработала
+                    active_win = gw.getActiveWindow()
+                    if not active_win or "Chrome" not in active_win.title:
+                        keyboard.press('alt')
+                        time.sleep(0.3)
+                        keyboard.press('tab')
+                        time.sleep(0.3)
+                        keyboard.release('tab')
+                        time.sleep(0.3)
+                        keyboard.release('alt')
+                        time.sleep(0.3)
+                except Exception as e:
+                    print(f"Ошибка при активации окна: {e}")
+                    return False
 
-            # Проверяем, что окно действительно активно
-            time.sleep(0.2)
-            active_window = gw.getActiveWindow()
-
-            if active_window and "Chrome" in active_window.title:
-                print(f"Chrome успешно активирован: {active_window.title}")
-                return True
-            else:
-                print(f"Не удалось активировать Chrome (попытка {attempt})")
-
-                # Пробуем Alt+Tab для переключения между окнами
-                pyautogui.keyDown('alt')
-                for _ in range(3):  # Попробуем нажать Tab несколько раз
-                    pyautogui.press('tab')
-                    time.sleep(0.2)
-                pyautogui.keyUp('alt')
-                time.sleep(1.0)
-
-                # Попробуем еще один способ - Win+Tab
-                pyautogui.keyDown('win')
-                pyautogui.press('tab')
-                pyautogui.keyUp('win')
-                time.sleep(0.5)
-
-                # Пробуем кликнуть по центру экрана, где может быть Chrome
-                screen_width, screen_height = pyautogui.size()
-                pyautogui.click(screen_width // 2, screen_height // 2)
-                time.sleep(0.5)
-
-                return activate_chrome_window(attempt + 1)
-
-        except Exception as e:
-            print(f"Ошибка при активации Chrome (попытка {attempt}): {e}")
-            return activate_chrome_window(attempt + 1) if attempt < MAX_ATTEMPTS else False
-
-    # Запуск Chrome, если не запущен
-    def launch_chrome():
-        try:
-            print("Запускаем Chrome...")
-
-            # Закрываем меню Пуск, если оно открыто
-            close_system_ui()
-
-            # Вариант 1: через поиск Windows (Win + S)
-            keyboard.press_and_release('win+s')
-            time.sleep(1.0)  # Увеличиваем задержку
-            keyboard.write('chrome')
-            time.sleep(0.7)  # Увеличиваем задержку
-            keyboard.press_and_release('enter')
-            time.sleep(1.0)  # Даем больше времени на запуск
-
-            # Ждем запуска Chrome
-            for i in range(12):  # Ждем до 6 секунд
-                time.sleep(0.5)
-                if is_chrome_running():
-                    print(f"Chrome запущен после {i / 2} секунд ожидания")
-                    return True
-
-        except Exception as e:
-            print(f"Ошибка при запуске Chrome: {e}")
+        # Финальная проверка активации Chrome
+        active_window = gw.getActiveWindow()
+        if not active_window or "Chrome" not in active_window.title:
+            print("Не удалось активировать Chrome после всех попыток")
             return False
 
-    print("Начинаем процесс запуска радио...")
+        print(f"Chrome успешно активирован: {active_window.title}")
 
-    # Сначала попробуем закрыть все возможные системные окна
-    close_system_ui()
+        # Даем дополнительное время на полную активацию Chrome
+        time.sleep(1)
 
-    # Основной код функции
-    if is_chrome_running():
-        print("Chrome уже запущен")
-        if activate_chrome_window():
-            # Переключаемся на первую вкладку
-            pyautogui.hotkey("ctrl", "1")
-            time.sleep(1.0)  # Увеличиваем задержку
-            try_click_radio()
+        # Ищем вкладку с радио
+        try:
+            print("Открываю меню поиска вкладок (Ctrl+Shift+A)...")
+
+            # Используем более надежный метод нажатия клавиш через keyboard
+            keyboard.press('ctrl')
+            time.sleep(0.3)  # Увеличенные задержки
+            keyboard.press('shift')
+            time.sleep(0.3)
+            keyboard.press('a')
+            time.sleep(0.3)
+            keyboard.release('a')
+            time.sleep(0.3)
+            keyboard.release('shift')
+            time.sleep(0.3)
+            keyboard.release('ctrl')
+
+            # Увеличенное время на открытие меню поиска вкладок
+            time.sleep(1)
+
+            print(f"Ввожу текст для поиска: {RADIO_TITLE}")
+            # Печатаем текст с задержкой для надежности
+            for char in RADIO_TITLE:
+                keyboard.write(char)
+                time.sleep(0.1)  # Увеличенная задержка между символами
+
+            # Увеличенное время ожидания результатов поиска
+            time.sleep(0.3)
+
+            print("Нажимаю Enter для выбора найденной вкладки...")
+            keyboard.press_and_release('enter')
+            time.sleep(0.5)  # Даем время на переключение вкладки
+
+            # Проверяем, первый ли это запуск радио в текущей сессии
+            if not _is_first_radio_launch:
+                # Пытаемся кликнуть по кнопке воспроизведения только если это не первый запуск
+                try_click_radio()
+            else:
+                print("Первый запуск радио в этой сессии, пропускаем автоматический клик")
+                _is_first_radio_launch = False
+
             return True
-    else:
-        print("Chrome не запущен, пытаемся запустить")
-        # Chrome не запущен, запускаем
-        if launch_chrome() and activate_chrome_window():
-            # Переключаемся на первую вкладку
-            pyautogui.hotkey("ctrl", "1")
-            time.sleep(1.0)  # Увеличиваем задержку
-            try_click_radio()
-            return True
+            
+        except Exception as e:
+            print(f"Ошибка при работе с вкладками Chrome: {e}")
+            return False
 
-    print("Не удалось открыть радио")
-    return False
+    except Exception as e:
+        print(f"Общая ошибка при управлении радио: {e}")
+        return False

@@ -17,7 +17,6 @@ from speech_recognition_manager import (
 )
 from timer_manager import update_timer_ui, process_timer_command
 from utils import check_internet, is_command_match
-from video_manager import process_video_command
 
 
 def main():
@@ -55,7 +54,6 @@ def main():
             music_off_commands = get_commands("MUSIC_OFF_COMMANDS")
             pause_timer_commands = get_commands("PAUSE_TIMER_COMMANDS")
             resume_timer_commands = get_commands("RESUME_TIMER_COMMANDS")
-            video_command_prefix = "play" if LANGUAGE == "en" else "включи"
 
             # Обработка команд
             if any(greeting in command for greeting in greeting_commands):
@@ -104,10 +102,6 @@ def main():
             # Погода
             elif is_command_match(command, WEATHER_COMMANDS):
                 process_weather_command()
-
-            # Воспроизведение видео
-            elif video_command_prefix in command:
-                process_video_command(command)
 
             # Калькулятор
             elif is_command_match(command, CALCULATOR_COMMANDS):

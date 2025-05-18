@@ -43,6 +43,8 @@ TIMER_WINDOW_WIDTH = 300
 TIMER_WINDOW_HEIGHT = 315
 
 # Настройки радио
+# Заголовок вкладки с радио для поиска (часть заголовка вкладки)
+RADIO_TITLE = "Relax"
 # Описания действий для открытия радио
 RADIO_BROWSER_TAB = 1  # Номер вкладки в Chrome
 
