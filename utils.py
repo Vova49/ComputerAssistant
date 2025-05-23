@@ -48,6 +48,7 @@ def is_command_match(command, command_list):
 def parse_time(command):
     """
     Анализирует команду и извлекает значение времени.
+    Теперь поддерживает фразы типа "на час", "на полчаса", "на полтора часа", "на полторы минуты" и их английские аналоги.
     
     Args:
         command (str): Команда для анализа
@@ -56,14 +57,43 @@ def parse_time(command):
         int: Общее количество секунд или None, если не удалось распознать
     """
     try:
-        # Импортируем LANGUAGE здесь, чтобы избежать круговой импортации
         from config import LANGUAGE
-        
+        command = command.lower().replace('-', ' ').replace('  ', ' ')
+
+        # --- Особые случаи для русского языка ---
+        if LANGUAGE == "ru":
+            if re.search(r"\bполтора часа\b", command):
+                return 90 * 60
+            if re.search(r"\bполтора минуты?\b", command):
+                return 90
+            if re.search(r"\bполчаса\b|\bпол часа\b", command):
+                return 30 * 60
+            if re.search(r"\bполминуты\b|\bпол минуты\b", command):
+                return 30
+            if re.search(r"\bчас\b", command) and not re.search(r"\d", command):
+                return 60 * 60
+            if re.search(r"\bминута\b|\bминуту\b", command) and not re.search(r"\d", command):
+                return 60
+
+        # --- Особые случаи для английского языка ---
+        else:
+            if re.search(r"one and a half hour[s]?", command):
+                return 90 * 60
+            if re.search(r"one and a half minute[s]?", command):
+                return 90
+            if re.search(r"half an hour|half hour", command):
+                return 30 * 60
+            if re.search(r"half a minute|half minute", command):
+                return 30
+            if re.search(r"\ban hour\b|\bhour\b", command) and not re.search(r"\d", command):
+                return 60 * 60
+            if re.search(r"\ba minute\b|\bminute\b", command) and not re.search(r"\d", command):
+                return 60
+
+        # --- Стандартная обработка числовых выражений ---
         if LANGUAGE == "en":
-            # Шаблон для английского языка
             time_parts = re.findall(r"(\d+)\s*(hour[s]?|minute[s]?|second[s]?)?", command)
             total_seconds = 0
-
             for value, unit in time_parts:
                 value = int(value)
                 if not unit or unit.strip() == "":
@@ -75,10 +105,8 @@ def parse_time(command):
                 elif "second" in unit:
                     total_seconds += value
         else:
-            # Шаблон для русского языка
             time_parts = re.findall(r"(\d+)\s*(час[а-я]*|минут[а-я]*|секунд[а-я]*)?", command)
             total_seconds = 0
-
             for value, unit in time_parts:
                 value = int(value)
                 if not unit or unit.strip() == "":
@@ -89,7 +117,6 @@ def parse_time(command):
                     total_seconds += value * 60
                 elif "секунд" in unit or "секунда" in unit:
                     total_seconds += value
-
         return total_seconds if total_seconds > 0 else None
     except ValueError:
         return None
