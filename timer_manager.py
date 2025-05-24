@@ -211,6 +211,24 @@ def create_circular_timer(seconds):
                 if seconds >= 0 and not stop_event.is_set():
                     canvas.delete("all")
                     draw_timer(seconds)
+
+                    # Проверяем, осталась ли ровно 1 минута до окончания таймера
+                    if seconds == 60 and not is_paused:
+                        # Создаем отдельный поток для воспроизведения голосового оповещения,
+                        # чтобы не блокировать обновление таймера
+                        def announce_one_minute():
+                            try:
+                                if LANGUAGE == "en":
+                                    speak("One minute left")
+                                else:
+                                    speak("Осталась 1 минута")
+                            except Exception as e:
+                                print(f"Ошибка при оповещении о минуте: {e}")
+
+                        announce_thread = threading.Thread(target=announce_one_minute)
+                        announce_thread.daemon = True
+                        announce_thread.start()
+                    
                     if not is_paused:
                         seconds -= 1
                     root.after(1000, update_timer)
